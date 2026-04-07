@@ -32,6 +32,9 @@ struct MenuBarView: View {
 
         Divider()
 
+        Text("Swyper v\(appVersion)")
+            .foregroundStyle(.secondary)
+
         Button("Quit Swyper") {
             NSApplication.shared.terminate(nil)
         }
