@@ -1,0 +1,32 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build app bundle
+        run: make bundle
+
+      - name: Create release archive
+        run: |
+          cd build
+          zip -r Swyper.zip Swyper.app
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(cat VERSION)
+          gh release create "v${VERSION}" build/Swyper.zip \
+            --title "Swyper v${VERSION}" \
+            --generate-notes
