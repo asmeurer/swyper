@@ -19,18 +19,18 @@ private typealias MTRegisterCallbackFn = @convention(c) (
 private typealias MTDeviceStartFn = @convention(c) (MTDeviceRef, Int32) -> Int32
 private typealias MTDeviceStopFn = @convention(c) (MTDeviceRef) -> Void
 
-// Known MTTouch record layout for arm64, macOS 14+.
-// The app only supports this layout and avoids probing unbounded memory.
+// Known MTTouch record layout for arm64.
+// macOS 26 shifted all fields +8 bytes compared to macOS 14.
 #if arch(arm64)
 private let kTouchRecordStride: Int = 96
 #else
 private let kTouchRecordStride: Int = 0
 #endif
 
-private let kOffsetPathIndex: Int = 8     // Int32 at byte 8
-private let kOffsetState: Int = 12        // Int32 at byte 12
-private let kOffsetNormX: Int = 24        // Float at byte 24
-private let kOffsetNormY: Int = 28        // Float at byte 28
+private let kOffsetPathIndex: Int = 16    // Int32 — finger identifier
+private let kOffsetState: Int = 20        // Int32 — touch phase (1=start, 3=touching, …)
+private let kOffsetNormX: Int = 32        // Float — normalized X position [0,1]
+private let kOffsetNormY: Int = 36        // Float — normalized Y position [0,1]
 
 // MARK: - Swipe tracking state
 
@@ -143,6 +143,7 @@ final class MultitouchManager: @unchecked Sendable {
         // Read touch data for all active fingers
         struct TouchInfo: Sendable {
             let id: Int32
+            let state: Int32
             let x: Float
             let y: Float
         }
@@ -154,11 +155,12 @@ final class MultitouchManager: @unchecked Sendable {
             let pathIndex = base.load(fromByteOffset: kOffsetPathIndex, as: Int32.self)
             let state = base.load(fromByteOffset: kOffsetState, as: Int32.self)
 
-            // State 4 = actively touching the trackpad
-            if state == 4 {
+            // Accept any finger that is actively present on the trackpad.
+            // macOS 26 uses state 1=start, 3=touching; older versions used 4+.
+            if state > 0 {
                 let x = base.load(fromByteOffset: kOffsetNormX, as: Float.self)
                 let y = base.load(fromByteOffset: kOffsetNormY, as: Float.self)
-                touches.append(TouchInfo(id: pathIndex, x: x, y: y))
+                touches.append(TouchInfo(id: pathIndex, state: state, x: x, y: y))
             }
         }
 
@@ -177,6 +179,7 @@ final class MultitouchManager: @unchecked Sendable {
                             currentX: touch.x, currentY: touch.y
                         )
                     }
+                    logger.debug("Started 3-finger tracking")
                 } else if !state.hasFired {
                     // Update current positions
                     for touch in activeTouches where state.fingers[touch.id] != nil {
@@ -191,12 +194,14 @@ final class MultitouchManager: @unchecked Sendable {
                     // Check for swipe
                     if let direction = detectSwipe(fingers: state.fingers) {
                         state.hasFired = true
+                        logger.info("Swipe detected: \(direction.rawValue)")
                         fireSwipe(direction)
                     }
                 }
             } else {
                 // Reset when not exactly 3 fingers
                 if state.isTracking {
+                    logger.debug("Tracking reset")
                     state.isTracking = false
                     state.hasFired = false
                     state.fingers.removeAll()
