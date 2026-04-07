@@ -13,7 +13,7 @@ private typealias MTContactFrameCallback = @convention(c) (
 
 // Function pointer types for dynamically loaded symbols
 private typealias MTDeviceCreateListFn = @convention(c) () -> Unmanaged<CFArray>
-private typealias MTRegisterContactFrameCallbackWithRefconFn = @convention(c) (
+private typealias MTRegisterCallbackFn = @convention(c) (
     MTDeviceRef, MTContactFrameCallback, UnsafeMutableRawPointer?
 ) -> Void
 private typealias MTDeviceStartFn = @convention(c) (MTDeviceRef, Int32) -> Int32
@@ -44,8 +44,7 @@ private struct SwipeState {
 
 // MARK: - File-scope C callback
 
-private let touchCallback: MTContactFrameCallback = {
-    device, data, nFingers, timestamp, frame, refcon in
+private let touchCallback: MTContactFrameCallback = { _, data, nFingers, _, _, refcon in
     guard let refcon else { return 0 }
     let manager = Unmanaged<MultitouchManager>.fromOpaque(refcon).takeUnretainedValue()
     manager.processFrame(data: data, fingerCount: Int(nFingers))
@@ -62,7 +61,7 @@ final class MultitouchManager: @unchecked Sendable {
 
     // Dynamic function pointers
     private let fnCreateList: MTDeviceCreateListFn
-    private let fnRegisterCallback: MTRegisterContactFrameCallbackWithRefconFn
+    private let fnRegisterCallback: MTRegisterCallbackFn
     private let fnStart: MTDeviceStartFn
     private let fnStop: MTDeviceStopFn
 
@@ -90,7 +89,7 @@ final class MultitouchManager: @unchecked Sendable {
         }
 
         fnCreateList = unsafeBitCast(pCreateList, to: MTDeviceCreateListFn.self)
-        fnRegisterCallback = unsafeBitCast(pRegister, to: MTRegisterContactFrameCallbackWithRefconFn.self)
+        fnRegisterCallback = unsafeBitCast(pRegister, to: MTRegisterCallbackFn.self)
         fnStart = unsafeBitCast(pStart, to: MTDeviceStartFn.self)
         fnStop = unsafeBitCast(pStop, to: MTDeviceStopFn.self)
     }
@@ -133,8 +132,13 @@ final class MultitouchManager: @unchecked Sendable {
         let stride = resolveStride(data: data, fingerCount: fingerCount)
         guard stride > 0 else { return }
 
-        // Read touch data for all fingers
-        var touches: [(id: Int32, x: Float, y: Float)] = []
+        // Read touch data for all active fingers
+        struct TouchInfo: Sendable {
+            let id: Int32
+            let x: Float
+            let y: Float
+        }
+        var touches: [TouchInfo] = []
         let rawPtr = UnsafeRawPointer(data)
 
         for i in 0..<fingerCount {
@@ -146,7 +150,7 @@ final class MultitouchManager: @unchecked Sendable {
             if state == 4 {
                 let x = base.load(fromByteOffset: kOffsetNormX, as: Float.self)
                 let y = base.load(fromByteOffset: kOffsetNormY, as: Float.self)
-                touches.append((id: pathIndex, x: x, y: y))
+                touches.append(TouchInfo(id: pathIndex, x: x, y: y))
             }
         }
 
@@ -167,11 +171,13 @@ final class MultitouchManager: @unchecked Sendable {
                     }
                 } else if !state.hasFired {
                     // Update current positions
-                    for touch in activeTouches {
-                        if state.fingers[touch.id] != nil {
-                            state.fingers[touch.id]!.currentX = touch.x
-                            state.fingers[touch.id]!.currentY = touch.y
-                        }
+                    for touch in activeTouches where state.fingers[touch.id] != nil {
+                        state.fingers[touch.id] = FingerTrack(
+                            startX: state.fingers[touch.id]?.startX ?? touch.x,
+                            startY: state.fingers[touch.id]?.startY ?? touch.y,
+                            currentX: touch.x,
+                            currentY: touch.y
+                        )
                     }
 
                     // Check for swipe

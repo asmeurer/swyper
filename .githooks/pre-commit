@@ -1,0 +1,13 @@
+#!/bin/bash
+set -e
+
+echo "Running SwiftLint..."
+if command -v swiftlint &> /dev/null; then
+    swiftlint --strict
+else
+    echo "warning: SwiftLint not installed (brew install swiftlint)"
+fi
+
+echo "Checking build..."
+swift build 2>&1
+echo "Pre-commit checks passed."

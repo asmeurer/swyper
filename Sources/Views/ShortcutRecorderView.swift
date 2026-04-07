@@ -49,12 +49,13 @@ final class ShortcutRecorderNSView: NSView {
         if let existing = trackingArea {
             removeTrackingArea(existing)
         }
-        trackingArea = NSTrackingArea(
+        let area = NSTrackingArea(
             rect: bounds,
             options: [.mouseEnteredAndExited, .activeInKeyWindow],
             owner: self
         )
-        addTrackingArea(trackingArea!)
+        trackingArea = area
+        addTrackingArea(area)
     }
 
     override func draw(_ dirtyRect: NSRect) {

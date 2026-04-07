@@ -1,4 +1,4 @@
-.PHONY: build bundle clean run install
+.PHONY: build bundle clean run install lint
 
 BUILD_DIR = build
 APP_BUNDLE = $(BUILD_DIR)/Swyper.app
@@ -21,6 +21,9 @@ run: bundle
 install: bundle
 	@cp -R "$(APP_BUNDLE)" /Applications/Swyper.app
 	@echo "Installed to /Applications/Swyper.app"
+
+lint:
+	swiftlint
 
 clean:
 	swift package clean

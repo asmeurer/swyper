@@ -10,6 +10,7 @@ final class ConfigManager {
     private let fileURL: URL
 
     init() {
+        // swiftlint:disable:next force_unwrapping
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         let swyperDir = appSupport.appendingPathComponent("Swyper", isDirectory: true)
         try? FileManager.default.createDirectory(at: swyperDir, withIntermediateDirectories: true)

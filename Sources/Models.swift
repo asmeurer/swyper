@@ -42,6 +42,7 @@ struct KeyShortcut: Codable, Equatable, Hashable, Sendable {
         return parts.joined()
     }
 
+    // swiftlint:disable:next cyclomatic_complexity
     static func keyName(for keyCode: UInt16) -> String {
         let code = Int(keyCode)
         switch code {
