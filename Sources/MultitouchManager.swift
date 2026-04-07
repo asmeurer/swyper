@@ -19,8 +19,14 @@ private typealias MTRegisterCallbackFn = @convention(c) (
 private typealias MTDeviceStartFn = @convention(c) (MTDeviceRef, Int32) -> Int32
 private typealias MTDeviceStopFn = @convention(c) (MTDeviceRef) -> Void
 
-// Known field offsets in the MTTouch struct (arm64, macOS 14+)
-// These are read field-by-field to avoid stride issues.
+// Known MTTouch record layout for arm64, macOS 14+.
+// The app only supports this layout and avoids probing unbounded memory.
+#if arch(arm64)
+private let kTouchRecordStride: Int = 96
+#else
+private let kTouchRecordStride: Int = 0
+#endif
+
 private let kOffsetPathIndex: Int = 8     // Int32 at byte 8
 private let kOffsetState: Int = 12        // Int32 at byte 12
 private let kOffsetNormX: Int = 24        // Float at byte 24
@@ -39,7 +45,6 @@ private struct SwipeState {
     var isTracking: Bool = false
     var hasFired: Bool = false
     var fingers: [Int32: FingerTrack] = [:]
-    var touchStride: Int = 0
 }
 
 // MARK: - File-scope C callback
@@ -72,6 +77,10 @@ final class MultitouchManager: @unchecked Sendable {
     private let swipeThreshold: Float = 0.08
 
     init?() {
+        guard kTouchRecordStride > 0 else {
+            return nil
+        }
+
         guard let handle = dlopen(
             "/System/Library/PrivateFrameworks/MultitouchSupport.framework/MultitouchSupport",
             RTLD_LAZY
@@ -129,8 +138,7 @@ final class MultitouchManager: @unchecked Sendable {
 
     // Called from the MultitouchSupport background thread
     func processFrame(data: UnsafeMutableRawPointer, fingerCount: Int) {
-        let stride = resolveStride(data: data, fingerCount: fingerCount)
-        guard stride > 0 else { return }
+        guard fingerCount > 0 else { return }
 
         // Read touch data for all active fingers
         struct TouchInfo: Sendable {
@@ -142,7 +150,7 @@ final class MultitouchManager: @unchecked Sendable {
         let rawPtr = UnsafeRawPointer(data)
 
         for i in 0..<fingerCount {
-            let base = rawPtr + i * stride
+            let base = rawPtr + i * kTouchRecordStride
             let pathIndex = base.load(fromByteOffset: kOffsetPathIndex, as: Int32.self)
             let state = base.load(fromByteOffset: kOffsetState, as: Int32.self)
 
@@ -195,34 +203,6 @@ final class MultitouchManager: @unchecked Sendable {
                 }
             }
         }
-    }
-
-    private func resolveStride(data: UnsafeMutableRawPointer, fingerCount: Int) -> Int {
-        let cached = lock.withLock { $0.touchStride }
-        if cached > 0 { return cached }
-
-        // Need at least 2 touches to empirically detect stride
-        guard fingerCount >= 2 else { return 0 }
-
-        let rawPtr = UnsafeRawPointer(data)
-        let firstPathIndex = rawPtr.load(fromByteOffset: kOffsetPathIndex, as: Int32.self)
-
-        // Try common stride values
-        for candidate in [64, 72, 80, 88, 96, 104, 112, 120, 128] {
-            let secondPathIndex = rawPtr.load(fromByteOffset: candidate + kOffsetPathIndex, as: Int32.self)
-            // The second finger should have a different path index and it should be a small positive value
-            if secondPathIndex != firstPathIndex && secondPathIndex >= 0 && secondPathIndex < 100 {
-                lock.withLock { $0.touchStride = candidate }
-                logger.info("Detected MTTouch stride: \(candidate) bytes")
-                return candidate
-            }
-        }
-
-        // Fallback
-        let fallback = 96
-        lock.withLock { $0.touchStride = fallback }
-        logger.warning("Using fallback MTTouch stride: \(fallback) bytes")
-        return fallback
     }
 
     private func detectSwipe(fingers: [Int32: FingerTrack]) -> SwipeDirection? {

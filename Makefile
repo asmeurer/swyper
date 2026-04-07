@@ -12,7 +12,7 @@ bundle: build
 	@mkdir -p "$(APP_BUNDLE)/Contents/Resources"
 	@cp $(BINARY) "$(APP_BUNDLE)/Contents/MacOS/Swyper"
 	@cp Resources/Info.plist "$(APP_BUNDLE)/Contents/Info.plist"
-	@codesign --force --sign - --entitlements Swyper.entitlements "$(APP_BUNDLE)/Contents/MacOS/Swyper"
+	@codesign --force --sign - --entitlements Swyper.entitlements "$(APP_BUNDLE)"
 	@echo "Built $(APP_BUNDLE)"
 
 run: bundle

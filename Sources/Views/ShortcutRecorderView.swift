@@ -123,19 +123,6 @@ final class ShortcutRecorderNSView: NSView {
 
         let keyCode = event.keyCode
 
-        // Escape cancels recording
-        if keyCode == UInt16(kVK_Escape) {
-            stopRecording()
-            return
-        }
-
-        // Delete/backspace clears the shortcut
-        if keyCode == UInt16(kVK_Delete) || keyCode == UInt16(kVK_ForwardDelete) {
-            onShortcutChanged?(nil)
-            stopRecording()
-            return
-        }
-
         // Capture the shortcut
         let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         let cgFlags = cgEventFlags(from: modifiers)
