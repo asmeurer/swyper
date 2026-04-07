@@ -20,7 +20,45 @@ jobs:
       - name: Create release archive
         run: |
           cd build
-          zip -r Swyper.zip Swyper.app
+          zip -ry Swyper.zip Swyper.app
+
+      - name: Download Sparkle tools
+        run: |
+          SPARKLE_VERSION=$(grep -A1 'url.*sparkle-project' Package.resolved | grep version | sed 's/.*: "//;s/".*//')
+          curl -sL -o /tmp/sparkle.tar.xz "https://github.com/sparkle-project/Sparkle/releases/download/${SPARKLE_VERSION}/Sparkle-${SPARKLE_VERSION}.tar.xz"
+          mkdir -p /tmp/sparkle-tools
+          tar xf /tmp/sparkle.tar.xz -C /tmp/sparkle-tools
+
+      - name: Sign update and generate appcast
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          VERSION=$(cat VERSION)
+          SIGNATURE=$(/tmp/sparkle-tools/bin/sign_update build/Swyper.zip --ed-key-file <(echo "$SPARKLE_PRIVATE_KEY"))
+          LENGTH=$(stat -f%z build/Swyper.zip)
+          ED_SIGNATURE=$(echo "$SIGNATURE" | grep -o 'sparkle:edSignature="[^"]*"' | sed 's/sparkle:edSignature="//;s/"//')
+          DOWNLOAD_URL="https://github.com/asmeurer/swyper/releases/download/v${VERSION}/Swyper.zip"
+          PUB_DATE=$(date -u +"%a, %d %b %Y %H:%M:%S %z")
+
+          cat > appcast.xml << APPCAST_EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+            <channel>
+              <title>Swyper Updates</title>
+              <item>
+                <title>Version ${VERSION}</title>
+                <pubDate>${PUB_DATE}</pubDate>
+                <sparkle:version>${VERSION}</sparkle:version>
+                <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
+                <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+                <enclosure url="${DOWNLOAD_URL}"
+                           sparkle:edSignature="${ED_SIGNATURE}"
+                           length="${LENGTH}"
+                           type="application/octet-stream" />
+              </item>
+            </channel>
+          </rss>
+          APPCAST_EOF
 
       - name: Create GitHub Release
         env:
@@ -30,3 +68,12 @@ jobs:
           gh release create "v${VERSION}" build/Swyper.zip \
             --title "Swyper v${VERSION}" \
             --generate-notes
+
+      - name: Update appcast in repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout main
+          git add appcast.xml
+          git commit -m "Update appcast.xml for v$(cat VERSION)"
+          git push origin main

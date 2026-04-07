@@ -5,6 +5,7 @@ import os
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let configManager = ConfigManager()
     let frontAppMonitor = FrontAppMonitor()
+    let updaterManager = UpdaterManager()
     private var multitouchManager: MultitouchManager?
     private let logger = Logger(subsystem: "com.swyper.app", category: "app")
 

@@ -3,6 +3,7 @@
 BUILD_DIR = build
 APP_BUNDLE = $(BUILD_DIR)/Swyper.app
 BINARY = .build/release/Swyper
+SPARKLE_FRAMEWORK = .build/release/Sparkle.framework
 VERSION := $(shell cat VERSION)
 
 build:
@@ -13,11 +14,14 @@ build:
 bundle: build
 	@mkdir -p "$(APP_BUNDLE)/Contents/MacOS"
 	@mkdir -p "$(APP_BUNDLE)/Contents/Resources"
+	@mkdir -p "$(APP_BUNDLE)/Contents/Frameworks"
 	@cp $(BINARY) "$(APP_BUNDLE)/Contents/MacOS/Swyper"
 	@cp Resources/Info.plist "$(APP_BUNDLE)/Contents/Info.plist"
 	@plutil -replace CFBundleShortVersionString -string "$(VERSION)" "$(APP_BUNDLE)/Contents/Info.plist"
 	@plutil -replace CFBundleVersion -string "$(VERSION)" "$(APP_BUNDLE)/Contents/Info.plist"
-	@codesign --force --sign - --entitlements Swyper.entitlements "$(APP_BUNDLE)"
+	@cp -RP "$(SPARKLE_FRAMEWORK)" "$(APP_BUNDLE)/Contents/Frameworks/"
+	@install_name_tool -add_rpath @executable_path/../Frameworks "$(APP_BUNDLE)/Contents/MacOS/Swyper" 2>/dev/null || true
+	@codesign --force --sign - --entitlements Swyper.entitlements "$(APP_BUNDLE)/Contents/MacOS/Swyper"
 	@echo "Built $(APP_BUNDLE) (v$(VERSION))"
 
 run: bundle

@@ -3,6 +3,7 @@ import ServiceManagement
 
 struct MenuBarView: View {
     @Environment(ConfigManager.self) private var configManager
+    @EnvironmentObject private var updaterManager: UpdaterManager
 
     var body: some View {
         @Bindable var cm = configManager
@@ -29,6 +30,11 @@ struct MenuBarView: View {
                 }
             }
         ))
+
+        Button("Check for Updates...") {
+            updaterManager.checkForUpdates()
+        }
+        .disabled(!updaterManager.canCheckForUpdates)
 
         Divider()
 
