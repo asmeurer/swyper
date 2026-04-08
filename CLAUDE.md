@@ -49,3 +49,4 @@ When significant changes have been made (new features, important bug fixes, UI c
 - Swift 6 strict concurrency: use `@unchecked Sendable` + `OSAllocatedUnfairLock` for thread-safe C interop, `@MainActor` for UI/state classes.
 - Avoid silencing exceptions — prefer full tracebacks on errors.
 - When working in a git worktree, always merge the worktree branch into `main` and push once the work is complete. Use `git checkout main && git merge <worktree-branch> && git push origin main`.
+- Always use `git merge`, never `git rebase`. When pulling remote changes, use `git pull` (not `git pull --rebase`).
