@@ -35,7 +35,7 @@ make lint      # Run SwiftLint
 
 ## Conventions
 
-- Always commit changes as soon as they are made. Do not batch up multiple unrelated changes.
+- Always commit changes as soon as they are made. Do not batch up multiple unrelated changes. Do not ask before committing.
 - Pre-commit hooks run SwiftLint and `swift build` to catch issues before committing.
 - Swift 6 strict concurrency: use `@unchecked Sendable` + `OSAllocatedUnfairLock` for thread-safe C interop, `@MainActor` for UI/state classes.
 - Avoid silencing exceptions — prefer full tracebacks on errors.

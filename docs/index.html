@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Swyper — Three-Finger Swipe Shortcuts for macOS</title>
+  <style>
+    :root {
+      --bg: #fafafa;
+      --fg: #1a1a1a;
+      --accent: #0071e3;
+      --muted: #6e6e73;
+      --card-bg: #fff;
+      --border: #e5e5e5;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1a1a1a;
+        --fg: #f5f5f7;
+        --accent: #2997ff;
+        --muted: #a1a1a6;
+        --card-bg: #2c2c2e;
+        --border: #3a3a3c;
+      }
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    header {
+      text-align: center;
+      padding: 80px 0 48px;
+    }
+    header h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    header p {
+      font-size: 1.25rem;
+      color: var(--muted);
+      margin-top: 12px;
+    }
+    .features {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 48px 0;
+    }
+    @media (max-width: 500px) {
+      .features { grid-template-columns: 1fr; }
+    }
+    .feature {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+    }
+    .feature h3 {
+      font-size: 1rem;
+      margin-bottom: 6px;
+    }
+    .feature p {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    .cta {
+      text-align: center;
+      margin: 48px 0;
+    }
+    .cta a {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      padding: 14px 32px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: opacity 0.15s;
+    }
+    .cta a:hover { opacity: 0.85; }
+    .requirements {
+      margin: 48px 0;
+    }
+    .requirements h2 {
+      font-size: 1.5rem;
+      margin-bottom: 16px;
+    }
+    .requirements ul {
+      list-style: none;
+      padding: 0;
+    }
+    .requirements li {
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .requirements li:last-child { border-bottom: none; }
+    .install {
+      margin: 48px 0;
+    }
+    .install h2 {
+      font-size: 1.5rem;
+      margin-bottom: 16px;
+    }
+    .install pre {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      overflow-x: auto;
+      font-size: 0.9rem;
+    }
+    .install code {
+      font-family: "SF Mono", Menlo, monospace;
+    }
+    footer {
+      text-align: center;
+      padding: 48px 0;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Swyper</h1>
+      <p>Map three-finger trackpad swipes to keyboard shortcuts on macOS.</p>
+    </header>
+
+    <div class="features">
+      <div class="feature">
+        <h3>Global Swipe Detection</h3>
+        <p>Works in any app, regardless of system trackpad settings.</p>
+      </div>
+      <div class="feature">
+        <h3>Per-App Shortcuts</h3>
+        <p>Configure different shortcuts for different apps, with a global fallback.</p>
+      </div>
+      <div class="feature">
+        <h3>Menu Bar App</h3>
+        <p>Runs quietly in the background with no dock icon.</p>
+      </div>
+      <div class="feature">
+        <h3>Launch at Login</h3>
+        <p>Optional auto-start so it's always ready.</p>
+      </div>
+    </div>
+
+    <div class="cta">
+      <a href="https://github.com/asmeurer/swyper/releases/latest">Download Latest Release</a>
+    </div>
+
+    <div class="requirements">
+      <h2>Requirements</h2>
+      <ul>
+        <li>macOS 14 (Sonoma) or later</li>
+        <li>Accessibility permission (for simulating keyboard shortcuts)</li>
+        <li>Input Monitoring permission (for reading trackpad gestures)</li>
+      </ul>
+    </div>
+
+    <div class="install">
+      <h2>Build from Source</h2>
+      <pre><code>git clone https://github.com/asmeurer/swyper.git
+cd swyper
+make bundle       # Builds build/Swyper.app
+make install      # Copies to /Applications</code></pre>
+    </div>
+
+    <footer>
+      <p>MIT License &middot; <a href="https://github.com/asmeurer/swyper">View on GitHub</a></p>
+    </footer>
+  </div>
+</body>
+</html>
