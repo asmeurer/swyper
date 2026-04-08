@@ -19,6 +19,7 @@ bundle: build
 	@cp Resources/Info.plist "$(APP_BUNDLE)/Contents/Info.plist"
 	@plutil -replace CFBundleShortVersionString -string "$(VERSION)" "$(APP_BUNDLE)/Contents/Info.plist"
 	@plutil -replace CFBundleVersion -string "$(VERSION)" "$(APP_BUNDLE)/Contents/Info.plist"
+	@cp Resources/AppIcon.icns "$(APP_BUNDLE)/Contents/Resources/"
 	@cp -RP "$(SPARKLE_FRAMEWORK)" "$(APP_BUNDLE)/Contents/Frameworks/"
 	@install_name_tool -add_rpath @executable_path/../Frameworks "$(APP_BUNDLE)/Contents/MacOS/Swyper" 2>/dev/null || true
 	@codesign --force --sign - --entitlements Swyper.entitlements "$(APP_BUNDLE)/Contents/MacOS/Swyper"
