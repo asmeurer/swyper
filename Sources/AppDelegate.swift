@@ -6,13 +6,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let configManager = ConfigManager()
     let frontAppMonitor = FrontAppMonitor()
     let updaterManager = UpdaterManager()
+    let permissionChecker = PermissionChecker()
     private var multitouchManager: MultitouchManager?
     private let logger = Logger(subsystem: "com.swyper.app", category: "app")
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        if !Permissions.isAccessibilityGranted() {
-            Permissions.requestAccessibility()
-        }
+        permissionChecker.startChecking()
 
         guard let mtManager = MultitouchManager() else {
             logger.error("Failed to load MultitouchSupport framework")
@@ -28,6 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        permissionChecker.stopChecking()
         multitouchManager?.stop()
     }
 

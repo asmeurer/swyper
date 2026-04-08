@@ -8,6 +8,7 @@ struct SwyperApp: App {
         MenuBarExtra("Swyper", systemImage: "hand.point.up.braille") {
             MenuBarView()
                 .environment(appDelegate.configManager)
+                .environment(appDelegate.permissionChecker)
                 .environmentObject(appDelegate.updaterManager)
         }
 
