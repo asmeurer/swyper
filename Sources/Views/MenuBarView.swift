@@ -3,10 +3,19 @@ import ServiceManagement
 
 struct MenuBarView: View {
     @Environment(ConfigManager.self) private var configManager
+    @Environment(PermissionChecker.self) private var permissionChecker
     @EnvironmentObject private var updaterManager: UpdaterManager
 
     var body: some View {
         @Bindable var cm = configManager
+
+        if !permissionChecker.isAccessibilityGranted {
+            Button("Grant Accessibility Access...") {
+                Permissions.openAccessibilitySettings()
+            }
+
+            Divider()
+        }
 
         Toggle("Enabled", isOn: $cm.config.isEnabled)
 

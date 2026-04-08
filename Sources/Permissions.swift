@@ -6,12 +6,6 @@ enum Permissions {
         AXIsProcessTrusted()
     }
 
-    static func requestAccessibility() {
-        let key = "AXTrustedCheckOptionPrompt" as CFString
-        let options = [key: true] as CFDictionary
-        AXIsProcessTrustedWithOptions(options)
-    }
-
     static func openAccessibilitySettings() {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
             NSWorkspace.shared.open(url)

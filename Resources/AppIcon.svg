@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2878DC"/>
+      <stop offset="100%" stop-color="#3C96B4"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded rectangle background -->
+  <rect x="40" y="40" width="944" height="944" rx="200" ry="200" fill="url(#bg)"/>
+
+  <!-- Three fingers (horizontal bars) -->
+  <rect x="352" y="347" width="320" height="50" rx="25" ry="25" fill="white" opacity="0.9"/>
+  <rect x="332" y="437" width="360" height="50" rx="25" ry="25" fill="white" opacity="0.9"/>
+  <rect x="352" y="527" width="320" height="50" rx="25" ry="25" fill="white" opacity="0.9"/>
+
+  <!-- Swipe arrow shaft -->
+  <rect x="312" y="658" width="400" height="28" rx="4" ry="4" fill="white" opacity="0.78"/>
+
+  <!-- Arrowhead -->
+  <polygon points="712,672 792,672 712,632 712,712 792,672" fill="white" opacity="0.78"/>
+</svg>
