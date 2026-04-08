@@ -73,7 +73,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout main
+          git fetch origin main
+          git checkout -B main origin/main
           git add appcast.xml
           git commit -m "Update appcast.xml for v$(cat VERSION)"
           git push origin main

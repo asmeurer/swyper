@@ -2,5 +2,16 @@
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
   <channel>
     <title>Swyper Updates</title>
+    <item>
+      <title>Version 0.1.0</title>
+      <pubDate>Tue, 08 Apr 2026 00:46:00 +0000</pubDate>
+      <sparkle:version>0.1.0</sparkle:version>
+      <sparkle:shortVersionString>0.1.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://github.com/asmeurer/swyper/releases/download/v0.1.0/Swyper.zip"
+                 sparkle:edSignature="jUuhSn336yW1BVFwwaQBjrBuzLLYGwxr1MAN/Sgt4oKWfy/ZyHhlotwn23Yiwa8WJedPIcMW9kK5RvpwlZUeBw=="
+                 length="1154331"
+                 type="application/octet-stream" />
+    </item>
   </channel>
 </rss>
