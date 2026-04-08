@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="Resources/AppIcon.svg" alt="Swyper app icon" width="128">
+</p>
+
 # Swyper
 
 A lightweight macOS menu bar app that maps three-finger trackpad swipe gestures to keyboard shortcuts, configurable per-application.
