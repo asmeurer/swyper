@@ -19,6 +19,7 @@ A lightweight macOS menu bar app that maps three-finger trackpad swipe gestures 
 - macOS 14 (Sonoma) or later
 - Accessibility permission (for simulating keyboard shortcuts)
 - Input Monitoring permission (for reading trackpad gestures)
+- App Management permission (for auto-updates — see [Setup](#setup))
 
 ## Install
 
@@ -35,7 +36,8 @@ make install      # Copies to /Applications
 
 1. Launch Swyper — a hand icon appears in the menu bar
 2. Grant **Accessibility** and **Input Monitoring** permissions when prompted (System Settings > Privacy & Security)
-3. Open **Settings** from the menu bar icon to configure swipe-to-shortcut mappings
+3. Grant **App Management** permission (System Settings > Privacy & Security > App Management) — this allows Swyper to update itself via the built-in auto-updater. Because Swyper is not signed with an Apple Developer ID, macOS requires this permission before Sparkle can replace the app bundle during updates.
+4. Open **Settings** from the menu bar icon to configure swipe-to-shortcut mappings
 
 > **Note:** You may need to disable conflicting system three-finger gestures in System Settings > Trackpad > More Gestures, or switch them to four-finger gestures.
 

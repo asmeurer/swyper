@@ -45,6 +45,10 @@ struct MenuBarView: View {
         }
         .disabled(!updaterManager.canCheckForUpdates)
 
+        Button("Grant App Management Access...") {
+            Permissions.openAppManagementSettings()
+        }
+
         Divider()
 
         Text("Swyper v\(appVersion)")

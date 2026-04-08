@@ -17,4 +17,10 @@ enum Permissions {
             NSWorkspace.shared.open(url)
         }
     }
+
+    static func openAppManagementSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AppManagement") {
+            NSWorkspace.shared.open(url)
+        }
+    }
 }
