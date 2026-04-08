@@ -24,7 +24,7 @@ jobs:
 
       - name: Download Sparkle tools
         run: |
-          SPARKLE_VERSION=$(grep -A1 'url.*sparkle-project' Package.resolved | grep version | sed 's/.*: "//;s/".*//')
+          SPARKLE_VERSION=$(grep -A5 '"sparkle"' Package.resolved | grep '"version"' | sed 's/.*: "//;s/".*//')
           curl -sL -o /tmp/sparkle.tar.xz "https://github.com/sparkle-project/Sparkle/releases/download/${SPARKLE_VERSION}/Sparkle-${SPARKLE_VERSION}.tar.xz"
           mkdir -p /tmp/sparkle-tools
           tar xf /tmp/sparkle.tar.xz -C /tmp/sparkle-tools
@@ -40,7 +40,7 @@ jobs:
           DOWNLOAD_URL="https://github.com/asmeurer/swyper/releases/download/v${VERSION}/Swyper.zip"
           PUB_DATE=$(date -u +"%a, %d %b %Y %H:%M:%S %z")
 
-          cat > appcast.xml << APPCAST_EOF
+          cat > appcast.xml <<APPCAST_EOF
           <?xml version="1.0" encoding="utf-8"?>
           <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
             <channel>
