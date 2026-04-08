@@ -48,3 +48,4 @@ When significant changes have been made (new features, important bug fixes, UI c
 - Pre-commit hooks run SwiftLint and `swift build` to catch issues before committing.
 - Swift 6 strict concurrency: use `@unchecked Sendable` + `OSAllocatedUnfairLock` for thread-safe C interop, `@MainActor` for UI/state classes.
 - Avoid silencing exceptions — prefer full tracebacks on errors.
+- When working in a git worktree, always merge the worktree branch into `main` and push once the work is complete. Use `git checkout main && git merge <worktree-branch> && git push origin main`.
