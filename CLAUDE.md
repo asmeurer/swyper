@@ -33,6 +33,15 @@ make lint      # Run SwiftLint
 - The release version of Swyper is installed at `/Applications/Swyper.app`. Before running the dev build with `make run`, close the release version first (click the menu bar icon → Quit Swyper) to avoid conflicts.
 - Auto-updates use Sparkle. The EdDSA private key is stored as the `SPARKLE_PRIVATE_KEY` GitHub secret. The CI workflow signs releases and updates `appcast.xml` on each tagged release.
 
+## Releasing
+
+When significant changes have been made (new features, important bug fixes, UI changes), create a release:
+
+1. Bump the version in `VERSION` (semver: major.minor.patch)
+2. Commit the version bump
+3. Tag with `git tag v<version>` and push the tag with `git push origin v<version>`
+4. The GitHub Actions release workflow (`.github/workflows/release.yml`) handles building, signing, creating the GitHub Release, and updating `appcast.xml`
+
 ## Conventions
 
 - Always commit changes as soon as they are made. Do not batch up multiple unrelated changes. Do not ask before committing.
