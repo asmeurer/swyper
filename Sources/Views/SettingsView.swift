@@ -6,6 +6,8 @@ struct SettingsView: View {
     @Environment(FrontAppMonitor.self) private var appMonitor
     @State private var selectedID: String? = "default"
     @State private var showingAppPicker = false
+    @State private var swipeIndicatorOpacity: Double = 0
+    @State private var displayedSwipeDirection: SwipeDirection?
 
     var body: some View {
         @Bindable var cm = configManager
@@ -81,9 +83,30 @@ struct SettingsView: View {
             Text("High")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+
+            Text(String(format: "(%.2f)", cm.config.swipeThresholdValue))
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .monospacedDigit()
+
+            Spacer()
+
+            if let direction = displayedSwipeDirection {
+                Label(direction.displayName, systemImage: direction.symbolName)
+                    .font(.callout.bold())
+                    .foregroundStyle(.green)
+                    .opacity(swipeIndicatorOpacity)
+            }
         }
         .padding(.horizontal)
         .padding(.vertical, 10)
+        .onChange(of: cm.lastSwipeTime) {
+            displayedSwipeDirection = cm.lastSwipeDirection
+            swipeIndicatorOpacity = 1.0
+            withAnimation(.easeOut(duration: 1.5)) {
+                swipeIndicatorOpacity = 0
+            }
+        }
 
         } // VStack
         .frame(minWidth: 550, minHeight: 350)

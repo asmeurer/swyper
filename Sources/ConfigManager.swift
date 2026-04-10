@@ -5,6 +5,10 @@ import Foundation
 final class ConfigManager {
     var onConfigChanged: (() -> Void)?
 
+    // Transient UI state for swipe feedback (not persisted)
+    var lastSwipeDirection: SwipeDirection?
+    var lastSwipeTime: Date?
+
     var config: SwyperConfig {
         didSet {
             save()

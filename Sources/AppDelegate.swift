@@ -47,6 +47,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         logger.debug("Swipe \(direction.rawValue) -> \(shortcut.displayString) (app: \(bundleID ?? "none"))")
+        configManager.lastSwipeDirection = direction
+        configManager.lastSwipeTime = Date()
         KeySimulator.postKeyEvent(shortcut: shortcut)
     }
 }
