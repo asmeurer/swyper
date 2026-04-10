@@ -2,6 +2,16 @@
 
 All notable changes to Swyper will be documented in this file.
 
+## [0.4.0] - 2026-04-10
+
+- Add configurable swipe sensitivity with a numeric threshold control
+- Add a swipe indicator, show feedback for swipes without shortcuts, and improve indicator contrast
+- Fix simulated shortcuts triggering the system beep
+- Make the Settings window reliably open and come to the front
+- Preserve compatibility when loading existing configs and restore tracked app version fallback
+- Add a comprehensive automated test suite and run it in CI on pushes and pull requests
+- Improve bundle and release builds by generating the app icon automatically and installing required icon tooling in CI
+
 ## [0.3.0] - 2026-04-09
 
 - Replace intrusive accessibility permission dialog with a non-blocking menu bar prompt
