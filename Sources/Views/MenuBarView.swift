@@ -4,6 +4,7 @@ import ServiceManagement
 struct MenuBarView: View {
     @Environment(ConfigManager.self) private var configManager
     @Environment(PermissionChecker.self) private var permissionChecker
+    @Environment(\.openSettings) private var openSettings
     @EnvironmentObject private var updaterManager: UpdaterManager
 
     var body: some View {
@@ -22,7 +23,7 @@ struct MenuBarView: View {
         Divider()
 
         Button("Settings...") {
-            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+            openSettings()
             NSApp.activate()
         }
 
