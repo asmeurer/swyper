@@ -2,6 +2,20 @@
 
 All notable changes to Swyper will be documented in this file.
 
+## [0.3.0] - 2026-04-09
+
+- Replace intrusive accessibility permission dialog with a non-blocking menu bar prompt
+- Redesign app icon with SVG source
+- Add dev version suffix to distinguish development builds from release builds
+- Switch to rcodesign for stable code signing that preserves Accessibility permissions across rebuilds
+- Add App Management permission instructions for auto-updates
+
+## [0.2.0] - 2026-04-07
+
+- Add app icon with three-finger swipe gesture design
+- Add GitHub Pages website for the project
+- Fix Sparkle appcast signing for auto-updates
+
 ## [0.1.0] - 2026-04-07
 
 Initial release.
