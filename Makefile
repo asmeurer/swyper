@@ -5,6 +5,7 @@ APP_BUNDLE = $(BUILD_DIR)/Swyper.app
 BINARY = .build/release/Swyper
 SPARKLE_FRAMEWORK = .build/release/Sparkle.framework
 APP_ICON_SVG = Resources/AppIcon.svg
+APP_ICON_FALLBACK = Resources/AppIcon.icns
 APP_ICON = $(BUILD_DIR)/AppIcon.icns
 VERSION := $(shell cat VERSION)
 DISPLAY_VERSION := $(VERSION)
@@ -33,8 +34,14 @@ validate-release-signing:
 build:
 	swift build -c release
 
-$(APP_ICON): $(APP_ICON_SVG) scripts/generate-icon.sh
-	@./scripts/generate-icon.sh "$<" "$@"
+$(APP_ICON): $(APP_ICON_SVG) $(APP_ICON_FALLBACK) scripts/generate-icon.sh
+	@if command -v rsvg-convert >/dev/null 2>&1; then \
+		./scripts/generate-icon.sh "$(APP_ICON_SVG)" "$@"; \
+	else \
+		mkdir -p "$(dir $@)"; \
+		cp "$(APP_ICON_FALLBACK)" "$@"; \
+		echo "Using committed icon fallback $(APP_ICON_FALLBACK); install librsvg to regenerate from $(APP_ICON_SVG)."; \
+	fi
 
 icon: $(APP_ICON)
 

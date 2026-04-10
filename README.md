@@ -32,6 +32,8 @@ make bundle       # Builds build/Swyper.app
 make install      # Copies to /Applications
 ```
 
+`make bundle` uses the committed `Resources/AppIcon.icns` by default. Install `librsvg` with `brew install librsvg` if you want to regenerate the icon from `Resources/AppIcon.svg` during local builds.
+
 ### Setup
 
 1. Launch Swyper — a hand icon appears in the menu bar
@@ -67,6 +69,8 @@ make run          # Build + launch
 make lint         # Run SwiftLint
 make clean        # Remove build artifacts
 ```
+
+Install `librsvg` with `brew install librsvg` to regenerate `AppIcon.icns` from the SVG source; otherwise the build uses the committed `.icns` fallback.
 
 ## Testing
 
