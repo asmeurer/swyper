@@ -1,9 +1,11 @@
-.PHONY: build bundle clean run install lint validate-release-signing
+.PHONY: build bundle clean run install lint validate-release-signing icon
 
 BUILD_DIR = build
 APP_BUNDLE = $(BUILD_DIR)/Swyper.app
 BINARY = .build/release/Swyper
 SPARKLE_FRAMEWORK = .build/release/Sparkle.framework
+APP_ICON_SVG = Resources/AppIcon.svg
+APP_ICON = $(BUILD_DIR)/AppIcon.icns
 VERSION := $(shell cat VERSION)
 DISPLAY_VERSION := $(VERSION)
 BUNDLE_SHORT_VERSION := $(VERSION)
@@ -31,7 +33,12 @@ validate-release-signing:
 build:
 	swift build -c release
 
-bundle: validate-release-signing build
+$(APP_ICON): $(APP_ICON_SVG) scripts/generate-icon.sh
+	@./scripts/generate-icon.sh "$<" "$@"
+
+icon: $(APP_ICON)
+
+bundle: validate-release-signing build $(APP_ICON)
 	@mkdir -p "$(APP_BUNDLE)/Contents/MacOS"
 	@mkdir -p "$(APP_BUNDLE)/Contents/Resources"
 	@mkdir -p "$(APP_BUNDLE)/Contents/Frameworks"
@@ -40,7 +47,7 @@ bundle: validate-release-signing build
 	@plutil -replace CFBundleShortVersionString -string "$(BUNDLE_SHORT_VERSION)" "$(APP_BUNDLE)/Contents/Info.plist"
 	@plutil -replace CFBundleVersion -string "$(BUNDLE_VERSION)" "$(APP_BUNDLE)/Contents/Info.plist"
 	@plutil -replace SwyperDisplayVersion -string "$(DISPLAY_VERSION)" "$(APP_BUNDLE)/Contents/Info.plist"
-	@cp Resources/AppIcon.icns "$(APP_BUNDLE)/Contents/Resources/"
+	@cp "$(APP_ICON)" "$(APP_BUNDLE)/Contents/Resources/"
 	@cp -RP "$(SPARKLE_FRAMEWORK)" "$(APP_BUNDLE)/Contents/Frameworks/"
 	@install_name_tool -add_rpath @executable_path/../Frameworks "$(APP_BUNDLE)/Contents/MacOS/Swyper" 2>/dev/null || true
 ifneq ($(CODESIGN_IDENTITY_TRIMMED),)

@@ -35,6 +35,9 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security find-identity -v -p codesigning "$KEYCHAIN_PATH"
 
+      - name: Install icon build dependency
+        run: brew list librsvg >/dev/null 2>&1 || brew install librsvg
+
       - name: Build app bundle
         env:
           CODESIGN_IDENTITY: ${{ secrets.APPLE_CODESIGN_IDENTITY }}
