@@ -17,6 +17,11 @@ let package = Package(
             swiftSettings: [
                 .unsafeFlags(["-parse-as-library"])
             ]
+        ),
+        .testTarget(
+            name: "SwyperTests",
+            dependencies: ["Swyper"],
+            path: "Tests"
         )
     ]
 )
