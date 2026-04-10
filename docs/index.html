@@ -82,18 +82,49 @@
       text-align: center;
       margin: 48px 0;
     }
+    .cta-actions {
+      display: inline-flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+    }
     .cta a {
       display: inline-block;
-      background: var(--accent);
-      color: #fff;
       text-decoration: none;
       padding: 14px 32px;
       border-radius: 8px;
       font-size: 1rem;
       font-weight: 600;
-      transition: opacity 0.15s;
+      transition: opacity 0.15s, transform 0.15s, box-shadow 0.15s;
     }
-    .cta a:hover { opacity: 0.85; }
+    .cta a:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+    }
+    .cta-primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 10px 24px rgba(0, 113, 227, 0.18);
+    }
+    .cta-secondary {
+      background: var(--card-bg);
+      color: var(--fg);
+      border: 1px solid var(--border);
+    }
+    .cta-note {
+      margin-top: 16px;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+    @media (max-width: 500px) {
+      .cta-actions {
+        display: flex;
+        flex-direction: column;
+      }
+      .cta a {
+        width: 100%;
+      }
+    }
     .requirements {
       margin: 48px 0;
     }
@@ -169,7 +200,11 @@
     </div>
 
     <div class="cta">
-      <a href="https://github.com/asmeurer/swyper/releases/latest">Download Latest Release</a>
+      <div class="cta-actions">
+        <a class="cta-primary" href="https://github.com/asmeurer/swyper/releases/latest">Download Latest Release</a>
+        <a class="cta-secondary" href="https://github.com/asmeurer/swyper">View on GitHub</a>
+      </div>
+      <p class="cta-note">Browse the source, releases, and issue tracker on GitHub.</p>
     </div>
 
     <div class="requirements">
@@ -190,7 +225,7 @@ make install      # Copies to /Applications</code></pre>
     </div>
 
     <footer>
-      <p>MIT License &middot; <a href="https://github.com/asmeurer/swyper">View on GitHub</a></p>
+      <p>MIT License &middot; <a href="https://github.com/asmeurer/swyper">Open source on GitHub</a></p>
     </footer>
   </div>
 </body>
