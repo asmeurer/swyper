@@ -68,6 +68,14 @@ make lint         # Run SwiftLint
 make clean        # Remove build artifacts
 ```
 
+## Testing
+
+```bash
+swift test       # Run the test suite
+```
+
+Tests cover model logic, config serialization/backward-compatibility, and the swipe detection algorithm. Tests run automatically on CI via GitHub Actions on pushes and pull requests to `main`.
+
 ## How it works
 
 Swyper uses the private `MultitouchSupport.framework` (loaded dynamically via `dlopen`) to receive raw multitouch data from the trackpad. It tracks active touch points and detects when three fingers move together past a displacement threshold, then simulates the configured keyboard shortcut via the `CGEvent` API.
