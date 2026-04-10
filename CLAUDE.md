@@ -10,6 +10,7 @@ make run       # Build and launch
 make install   # Copy to /Applications
 make clean     # Clean build artifacts
 make lint      # Run SwiftLint
+swift test     # Run the test suite
 ```
 
 ## Architecture
@@ -30,6 +31,7 @@ make lint      # Run SwiftLint
 
 ## Development
 
+- Tests are in the `Tests/` directory. Run `swift test` to execute the test suite. CI runs tests on pushes and PRs to `main` via `.github/workflows/ci.yml`.
 - The release version of Swyper is installed at `/Applications/Swyper.app`. Before running the dev build with `make run`, close the release version first (click the menu bar icon → Quit Swyper) to avoid conflicts.
 - Auto-updates use Sparkle. The EdDSA private key is stored as the `SPARKLE_PRIVATE_KEY` GitHub secret. Release code signing uses `APPLE_CODESIGN_CERTIFICATE_BASE64`, `APPLE_CODESIGN_CERTIFICATE_PASSWORD`, and `APPLE_CODESIGN_IDENTITY`. The CI workflow signs releases and updates `appcast.xml` on each tagged release.
 
