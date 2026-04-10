@@ -41,14 +41,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func handleSwipe(_ direction: SwipeDirection) {
         guard configManager.config.isEnabled else { return }
 
+        // Update swipe indicator regardless of shortcut configuration
+        configManager.lastSwipeDirection = direction
+        configManager.lastSwipeTime = Date()
+
         let bundleID = frontAppMonitor.currentBundleID
         guard let shortcut = configManager.config.shortcut(for: direction, bundleID: bundleID) else {
             return
         }
 
+        // Skip key events when Swyper's own window is active to avoid system beep
+        guard !NSApp.isActive else { return }
+
         logger.debug("Swipe \(direction.rawValue) -> \(shortcut.displayString) (app: \(bundleID ?? "none"))")
-        configManager.lastSwipeDirection = direction
-        configManager.lastSwipeTime = Date()
         KeySimulator.postKeyEvent(shortcut: shortcut)
     }
 }

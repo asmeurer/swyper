@@ -94,7 +94,7 @@ struct SettingsView: View {
             if let direction = displayedSwipeDirection {
                 Label(direction.displayName, systemImage: direction.symbolName)
                     .font(.callout.bold())
-                    .foregroundStyle(.green)
+                    .foregroundColor(.accentColor)
                     .opacity(swipeIndicatorOpacity)
             }
         }
