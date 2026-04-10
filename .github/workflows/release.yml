@@ -40,6 +40,42 @@ jobs:
           DOWNLOAD_URL="https://github.com/asmeurer/swyper/releases/download/v${VERSION}/Swyper.zip"
           PUB_DATE=$(date -u +"%a, %d %b %Y %H:%M:%S %z")
 
+          # Extract changelog for this version and convert to HTML
+          CHANGELOG_HTML=$(python3 -c "
+          import re, html, sys
+          text = open('CHANGELOG.md').read()
+          # Match section for this version
+          pattern = r'^## \[${VERSION}\].*?\n(.*?)(?=^## \[|\Z)'
+          m = re.search(pattern, text, re.MULTILINE | re.DOTALL)
+          if not m:
+              print('<p>Bug fixes and improvements.</p>')
+              sys.exit(0)
+          body = m.group(1).strip()
+          lines = body.split('\n')
+          result = []
+          in_list = False
+          for line in lines:
+              line = line.strip()
+              if not line:
+                  if in_list:
+                      result.append('</ul>')
+                      in_list = False
+                  continue
+              if line.startswith('- '):
+                  if not in_list:
+                      result.append('<ul>')
+                      in_list = True
+                  result.append(f'<li>{html.escape(line[2:])}</li>')
+              else:
+                  if in_list:
+                      result.append('</ul>')
+                      in_list = False
+                  result.append(f'<p>{html.escape(line)}</p>')
+          if in_list:
+              result.append('</ul>')
+          print('\n'.join(result))
+          ")
+
           cat > appcast.xml <<APPCAST_EOF
           <?xml version="1.0" encoding="utf-8"?>
           <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
@@ -51,6 +87,7 @@ jobs:
                 <sparkle:version>${VERSION}</sparkle:version>
                 <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
                 <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+                <description><![CDATA[${CHANGELOG_HTML}]]></description>
                 <enclosure url="${DOWNLOAD_URL}"
                            sparkle:edSignature="${ED_SIGNATURE}"
                            length="${LENGTH}"

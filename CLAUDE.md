@@ -37,10 +37,11 @@ make lint      # Run SwiftLint
 
 When significant changes have been made (new features, important bug fixes, UI changes), create a release:
 
-1. Bump the version in `VERSION` (semver: major.minor.patch)
-2. Commit the version bump
-3. Tag with `git tag v<version>` and push the tag with `git push origin v<version>`
-4. The GitHub Actions release workflow (`.github/workflows/release.yml`) handles building, signing, creating the GitHub Release, and updating `appcast.xml`
+1. Update `CHANGELOG.md` with the new version's changes under a `## [x.y.z] - YYYY-MM-DD` heading
+2. Bump the version in `VERSION` (semver: major.minor.patch)
+3. Commit the changelog and version bump
+4. Tag with `git tag v<version>` and push the tag with `git push origin v<version>`
+5. The GitHub Actions release workflow (`.github/workflows/release.yml`) handles building, signing, creating the GitHub Release, and updating `appcast.xml` (which includes the changelog so Sparkle shows it in the update dialog)
 
 ## Conventions
 
