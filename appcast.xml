@@ -3,14 +3,14 @@
   <channel>
     <title>Swyper Updates</title>
     <item>
-      <title>Version 0.2.0</title>
-      <pubDate>Wed, 08 Apr 2026 01:00:22 +0000</pubDate>
-      <sparkle:version>0.2.0</sparkle:version>
-      <sparkle:shortVersionString>0.2.0</sparkle:shortVersionString>
+      <title>Version 0.3.0</title>
+      <pubDate>Fri, 10 Apr 2026 01:07:11 +0000</pubDate>
+      <sparkle:version>0.3.0</sparkle:version>
+      <sparkle:shortVersionString>0.3.0</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-      <enclosure url="https://github.com/asmeurer/swyper/releases/download/v0.2.0/Swyper.zip"
-                 sparkle:edSignature="QADmaOrqZ9MAq66LWhlBrGUzTJxg9ghI5AW1FvOQH/Bh539vvA+0V38hS91zmJabfT/cvVVieqJB0x4GZXATCg=="
-                 length="1214435"
+      <enclosure url="https://github.com/asmeurer/swyper/releases/download/v0.3.0/Swyper.zip"
+                 sparkle:edSignature="hEHQX5zErzeHiwJdsHMyhcN+cw/9w5JtnWXD+dd5Jj62ogYiYfU9Ro3cBNofLgfwJFDo8iNFgK05wNJe2wDADQ=="
+                 length="1211580"
                  type="application/octet-stream" />
     </item>
   </channel>
