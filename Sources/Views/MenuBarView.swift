@@ -21,8 +21,9 @@ struct MenuBarView: View {
 
         Divider()
 
-        SettingsLink {
-            Text("Settings...")
+        Button("Settings...") {
+            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+            NSApp.activate()
         }
 
         Toggle("Launch at Login", isOn: Binding(
