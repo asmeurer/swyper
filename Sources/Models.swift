@@ -143,6 +143,33 @@ struct SwyperConfig: Codable, Sendable {
     var defaultMapping: AppMapping = AppMapping()
     var appMappings: [AppMapping] = []
 
+    private enum CodingKeys: String, CodingKey {
+        case isEnabled
+        case swipeSensitivity
+        case defaultMapping
+        case appMappings
+    }
+
+    init(
+        isEnabled: Bool = true,
+        swipeSensitivity: Double = 0.5,
+        defaultMapping: AppMapping = AppMapping(),
+        appMappings: [AppMapping] = []
+    ) {
+        self.isEnabled = isEnabled
+        self.swipeSensitivity = swipeSensitivity
+        self.defaultMapping = defaultMapping
+        self.appMappings = appMappings
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.isEnabled = try container.decode(Bool.self, forKey: .isEnabled)
+        self.swipeSensitivity = try container.decodeIfPresent(Double.self, forKey: .swipeSensitivity) ?? 0.5
+        self.defaultMapping = try container.decode(AppMapping.self, forKey: .defaultMapping)
+        self.appMappings = try container.decode([AppMapping].self, forKey: .appMappings)
+    }
+
     /// Convert sensitivity (0=low, 1=high) to a swipe threshold in normalized coordinates.
     /// Sensitivity 0.0 → threshold 0.13 (long swipes needed)
     /// Sensitivity 0.5 → threshold 0.08 (current default)
