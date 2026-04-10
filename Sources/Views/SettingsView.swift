@@ -10,6 +10,7 @@ struct SettingsView: View {
     var body: some View {
         @Bindable var cm = configManager
 
+        VStack(spacing: 0) {
         NavigationSplitView {
             List(selection: $selectedID) {
                 Section("Mappings") {
@@ -67,6 +68,24 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
         }
+        Divider()
+
+        HStack(spacing: 12) {
+            Text("Sensitivity")
+                .font(.callout)
+            Text("Low")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Slider(value: $cm.config.swipeSensitivity, in: 0...1)
+                .frame(maxWidth: 200)
+            Text("High")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 10)
+
+        } // VStack
         .frame(minWidth: 550, minHeight: 350)
         .sheet(isPresented: $showingAppPicker) {
             AppPickerSheet(configManager: configManager) { bundleID, name in

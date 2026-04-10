@@ -19,10 +19,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         multitouchManager = mtManager
+        mtManager.updateSwipeThreshold(configManager.config.swipeThresholdValue)
         mtManager.onSwipe = { [weak self] direction in
             self?.handleSwipe(direction)
         }
         mtManager.start()
+
+        configManager.onConfigChanged = { [weak self] in
+            guard let self else { return }
+            self.multitouchManager?.updateSwipeThreshold(self.configManager.config.swipeThresholdValue)
+        }
+
         logger.info("Swyper started")
     }
 

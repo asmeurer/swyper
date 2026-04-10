@@ -3,8 +3,13 @@ import Foundation
 @Observable
 @MainActor
 final class ConfigManager {
+    var onConfigChanged: (() -> Void)?
+
     var config: SwyperConfig {
-        didSet { save() }
+        didSet {
+            save()
+            onConfigChanged?()
+        }
     }
 
     private let fileURL: URL

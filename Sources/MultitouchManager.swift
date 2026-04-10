@@ -45,6 +45,7 @@ private struct SwipeState {
     var isTracking: Bool = false
     var hasFired: Bool = false
     var fingers: [Int32: FingerTrack] = [:]
+    var swipeThreshold: Float = 0.08
 }
 
 // MARK: - File-scope C callback
@@ -73,8 +74,6 @@ final class MultitouchManager: @unchecked Sendable {
     private let handle: UnsafeMutableRawPointer
     private var devices: [MTDeviceRef] = []
     private var isRunning = false
-
-    private let swipeThreshold: Float = 0.08
 
     init?() {
         guard kTouchRecordStride > 0 else {
@@ -192,7 +191,7 @@ final class MultitouchManager: @unchecked Sendable {
                     }
 
                     // Check for swipe
-                    if let direction = detectSwipe(fingers: state.fingers) {
+                    if let direction = detectSwipe(fingers: state.fingers, threshold: state.swipeThreshold) {
                         state.hasFired = true
                         logger.info("Swipe detected: \(direction.rawValue)")
                         fireSwipe(direction)
@@ -210,7 +209,13 @@ final class MultitouchManager: @unchecked Sendable {
         }
     }
 
-    private func detectSwipe(fingers: [Int32: FingerTrack]) -> SwipeDirection? {
+    func updateSwipeThreshold(_ threshold: Float) {
+        lock.withLock { state in
+            state.swipeThreshold = threshold
+        }
+    }
+
+    private func detectSwipe(fingers: [Int32: FingerTrack], threshold: Float) -> SwipeDirection? {
         guard fingers.count == 3 else { return nil }
 
         var totalDX: Float = 0
@@ -228,9 +233,9 @@ final class MultitouchManager: @unchecked Sendable {
         let absDY = abs(avgDY)
 
         // Must exceed threshold in the dominant axis
-        if absDX > absDY && absDX > swipeThreshold {
+        if absDX > absDY && absDX > threshold {
             return avgDX > 0 ? .right : .left
-        } else if absDY > absDX && absDY > swipeThreshold {
+        } else if absDY > absDX && absDY > threshold {
             return avgDY > 0 ? .up : .down
         }
 

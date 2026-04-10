@@ -139,8 +139,17 @@ struct AppMapping: Codable, Sendable, Identifiable {
 
 struct SwyperConfig: Codable, Sendable {
     var isEnabled: Bool = true
+    var swipeSensitivity: Double = 0.5
     var defaultMapping: AppMapping = AppMapping()
     var appMappings: [AppMapping] = []
+
+    /// Convert sensitivity (0=low, 1=high) to a swipe threshold in normalized coordinates.
+    /// Sensitivity 0.0 → threshold 0.13 (long swipes needed)
+    /// Sensitivity 0.5 → threshold 0.08 (current default)
+    /// Sensitivity 1.0 → threshold 0.03 (short swipes trigger)
+    var swipeThresholdValue: Float {
+        Float(0.13 - swipeSensitivity * 0.10)
+    }
 
     func mapping(for bundleID: String?) -> AppMapping {
         if let bundleID,
