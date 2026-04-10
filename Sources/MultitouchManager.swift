@@ -34,7 +34,7 @@ private let kOffsetNormY: Int = 36        // Float — normalized Y position [0,
 
 // MARK: - Swipe tracking state
 
-private struct FingerTrack {
+struct FingerTrack: Sendable {
     var startX: Float
     var startY: Float
     var currentX: Float
@@ -55,6 +55,35 @@ private let touchCallback: MTContactFrameCallback = { _, data, nFingers, _, _, r
     let manager = Unmanaged<MultitouchManager>.fromOpaque(refcon).takeUnretainedValue()
     manager.processFrame(data: data, fingerCount: Int(nFingers))
     return 0
+}
+
+// MARK: - Swipe detection (internal for testability)
+
+func detectSwipe(fingers: [Int32: FingerTrack], threshold: Float) -> SwipeDirection? {
+    guard fingers.count == 3 else { return nil }
+
+    var totalDX: Float = 0
+    var totalDY: Float = 0
+
+    for (_, track) in fingers {
+        totalDX += track.currentX - track.startX
+        totalDY += track.currentY - track.startY
+    }
+
+    let avgDX = totalDX / 3.0
+    let avgDY = totalDY / 3.0
+
+    let absDX = abs(avgDX)
+    let absDY = abs(avgDY)
+
+    // Must exceed threshold in the dominant axis
+    if absDX > absDY && absDX > threshold {
+        return avgDX > 0 ? .right : .left
+    } else if absDY > absDX && absDY > threshold {
+        return avgDY > 0 ? .up : .down
+    }
+
+    return nil
 }
 
 // MARK: - MultitouchManager
@@ -191,7 +220,7 @@ final class MultitouchManager: @unchecked Sendable {
                     }
 
                     // Check for swipe
-                    if let direction = detectSwipe(fingers: state.fingers, threshold: state.swipeThreshold) {
+                    if let direction = detectSwipeDirection(fingers: state.fingers, threshold: state.swipeThreshold) {
                         state.hasFired = true
                         logger.info("Swipe detected: \(direction.rawValue)")
                         fireSwipe(direction)
@@ -215,31 +244,8 @@ final class MultitouchManager: @unchecked Sendable {
         }
     }
 
-    private func detectSwipe(fingers: [Int32: FingerTrack], threshold: Float) -> SwipeDirection? {
-        guard fingers.count == 3 else { return nil }
-
-        var totalDX: Float = 0
-        var totalDY: Float = 0
-
-        for (_, track) in fingers {
-            totalDX += track.currentX - track.startX
-            totalDY += track.currentY - track.startY
-        }
-
-        let avgDX = totalDX / 3.0
-        let avgDY = totalDY / 3.0
-
-        let absDX = abs(avgDX)
-        let absDY = abs(avgDY)
-
-        // Must exceed threshold in the dominant axis
-        if absDX > absDY && absDX > threshold {
-            return avgDX > 0 ? .right : .left
-        } else if absDY > absDX && absDY > threshold {
-            return avgDY > 0 ? .up : .down
-        }
-
-        return nil
+    private func detectSwipeDirection(fingers: [Int32: FingerTrack], threshold: Float) -> SwipeDirection? {
+        detectSwipe(fingers: fingers, threshold: threshold)
     }
 
     private func fireSwipe(_ direction: SwipeDirection) {
