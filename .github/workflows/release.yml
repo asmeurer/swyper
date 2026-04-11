@@ -14,13 +14,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Import Developer ID certificate
+      - name: Import code signing certificate
         env:
           APPLE_CODESIGN_CERTIFICATE_BASE64: ${{ secrets.APPLE_CODESIGN_CERTIFICATE_BASE64 }}
           APPLE_CODESIGN_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CODESIGN_CERTIFICATE_PASSWORD }}
         run: |
-          : "${APPLE_CODESIGN_CERTIFICATE_BASE64:?APPLE_CODESIGN_CERTIFICATE_BASE64 secret is required}"
-          : "${APPLE_CODESIGN_CERTIFICATE_PASSWORD:?APPLE_CODESIGN_CERTIFICATE_PASSWORD secret is required}"
+          if [ -z "$APPLE_CODESIGN_CERTIFICATE_BASE64" ] && [ -z "$APPLE_CODESIGN_CERTIFICATE_PASSWORD" ]; then
+            echo "No code signing certificate configured; release build will use rcodesign or ad-hoc signing."
+            exit 0
+          fi
+
+          : "${APPLE_CODESIGN_CERTIFICATE_BASE64:?APPLE_CODESIGN_CERTIFICATE_BASE64 secret is required when a certificate is configured}"
+          : "${APPLE_CODESIGN_CERTIFICATE_PASSWORD:?APPLE_CODESIGN_CERTIFICATE_PASSWORD secret is required when a certificate is configured}"
 
           CERTIFICATE_PATH="$RUNNER_TEMP/developer-id.p12"
           KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
@@ -42,8 +47,13 @@ jobs:
         env:
           CODESIGN_IDENTITY: ${{ secrets.APPLE_CODESIGN_IDENTITY }}
         run: |
-          : "${CODESIGN_IDENTITY:?APPLE_CODESIGN_IDENTITY secret is required}"
-          make bundle RELEASE=1 CODESIGN_IDENTITY="$CODESIGN_IDENTITY"
+          if [ -n "$CODESIGN_IDENTITY" ]; then
+            echo "Building release with configured signing identity."
+            make bundle RELEASE=1 CODESIGN_IDENTITY="$CODESIGN_IDENTITY"
+          else
+            echo "No CODESIGN_IDENTITY configured; building release with rcodesign or ad-hoc signing."
+            make bundle RELEASE=1
+          fi
 
       - name: Create release archive
         run: |

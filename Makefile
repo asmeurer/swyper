@@ -1,4 +1,4 @@
-.PHONY: build bundle clean run install lint validate-release-signing icon
+.PHONY: build bundle clean run install lint icon
 
 BUILD_DIR = build
 APP_BUNDLE = $(BUILD_DIR)/Swyper.app
@@ -24,13 +24,6 @@ RCODESIGN := $(shell command -v rcodesign 2>/dev/null)
 RCODESIGN_CERT := $(HOME)/.config/swyper/swyper-rcodesign.crt
 RCODESIGN_KEY := $(HOME)/.config/swyper/swyper-rcodesign.key
 
-validate-release-signing:
-	@if [ -n "$(RELEASE)" ] && { [ -z "$(CODESIGN_IDENTITY_TRIMMED)" ] || [ "$(CODESIGN_IDENTITY_TRIMMED)" = "-" ]; }; then \
-		echo "error: RELEASE=1 requires CODESIGN_IDENTITY to be an installed non-ad-hoc signing identity." >&2; \
-		echo "       Example: make bundle RELEASE=1 CODESIGN_IDENTITY='Developer ID Application: Name (TEAMID)'" >&2; \
-		exit 1; \
-	fi
-
 build:
 	swift build -c release
 
@@ -45,7 +38,7 @@ $(APP_ICON): $(APP_ICON_SVG) $(APP_ICON_FALLBACK) scripts/generate-icon.sh
 
 icon: $(APP_ICON)
 
-bundle: validate-release-signing build $(APP_ICON)
+bundle: build $(APP_ICON)
 	@mkdir -p "$(APP_BUNDLE)/Contents/MacOS"
 	@mkdir -p "$(APP_BUNDLE)/Contents/Resources"
 	@mkdir -p "$(APP_BUNDLE)/Contents/Frameworks"
