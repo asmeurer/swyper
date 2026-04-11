@@ -20,7 +20,7 @@ jobs:
           APPLE_CODESIGN_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CODESIGN_CERTIFICATE_PASSWORD }}
         run: |
           if [ -z "$APPLE_CODESIGN_CERTIFICATE_BASE64" ] && [ -z "$APPLE_CODESIGN_CERTIFICATE_PASSWORD" ]; then
-            echo "No code signing certificate configured; release build will use rcodesign or ad-hoc signing."
+            echo "No code signing certificate configured; release build will use explicit ad-hoc signing."
             exit 0
           fi
 
@@ -51,9 +51,14 @@ jobs:
             echo "Building release with configured signing identity."
             make bundle RELEASE=1 CODESIGN_IDENTITY="$CODESIGN_IDENTITY"
           else
-            echo "No CODESIGN_IDENTITY configured; building release with rcodesign or ad-hoc signing."
-            make bundle RELEASE=1
+            echo "No CODESIGN_IDENTITY configured; building release with explicit ad-hoc signing."
+            make bundle RELEASE=1 CODESIGN_IDENTITY=-
           fi
+
+      - name: Verify signed app bundle
+        run: |
+          codesign --verify --deep --strict --verbose=2 build/Swyper.app/Contents/Frameworks/Sparkle.framework
+          codesign --verify --deep --strict --verbose=2 build/Swyper.app
 
       - name: Create release archive
         run: |
