@@ -14,13 +14,71 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Prepare stable signing
+        env:
+          APPLE_CODESIGN_CERTIFICATE_BASE64: ${{ secrets.APPLE_CODESIGN_CERTIFICATE_BASE64 }}
+          APPLE_CODESIGN_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CODESIGN_CERTIFICATE_PASSWORD }}
+          APPLE_CODESIGN_IDENTITY: ${{ secrets.APPLE_CODESIGN_IDENTITY }}
+          RCODESIGN_CERT_PEM: ${{ secrets.RCODESIGN_CERT_PEM }}
+          RCODESIGN_KEY_PEM: ${{ secrets.RCODESIGN_KEY_PEM }}
+        run: |
+          if [ -n "$APPLE_CODESIGN_IDENTITY" ]; then
+            : "${APPLE_CODESIGN_CERTIFICATE_BASE64:?APPLE_CODESIGN_CERTIFICATE_BASE64 secret is required when APPLE_CODESIGN_IDENTITY is configured}"
+            : "${APPLE_CODESIGN_CERTIFICATE_PASSWORD:?APPLE_CODESIGN_CERTIFICATE_PASSWORD secret is required when APPLE_CODESIGN_IDENTITY is configured}"
+
+            CERTIFICATE_PATH="$RUNNER_TEMP/developer-id.p12"
+            KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+            KEYCHAIN_PASSWORD="$(uuidgen)"
+
+            echo "$APPLE_CODESIGN_CERTIFICATE_BASE64" | base64 -D > "$CERTIFICATE_PATH"
+            security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+            security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+            security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+            security import "$CERTIFICATE_PATH" -P "$APPLE_CODESIGN_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+            security list-keychains -d user -s "$KEYCHAIN_PATH"
+            security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+            security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
+            echo "RELEASE_SIGNING_STRATEGY=codesign" >> "$GITHUB_ENV"
+            exit 0
+          fi
+
+          : "${RCODESIGN_CERT_PEM:?RCODESIGN_CERT_PEM secret is required when APPLE_CODESIGN_IDENTITY is not configured}"
+          : "${RCODESIGN_KEY_PEM:?RCODESIGN_KEY_PEM secret is required when APPLE_CODESIGN_IDENTITY is not configured}"
+
+          if ! command -v rcodesign >/dev/null 2>&1; then
+            if ! command -v cargo >/dev/null 2>&1; then
+              echo "error: cargo is required to install rcodesign for release signing." >&2
+              exit 1
+            fi
+            cargo install apple-codesign --locked
+          fi
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+          RCODESIGN_CERT_PATH="$RUNNER_TEMP/swyper-rcodesign.crt"
+          RCODESIGN_KEY_PATH="$RUNNER_TEMP/swyper-rcodesign.key"
+          printf '%s\n' "$RCODESIGN_CERT_PEM" > "$RCODESIGN_CERT_PATH"
+          printf '%s\n' "$RCODESIGN_KEY_PEM" > "$RCODESIGN_KEY_PATH"
+          chmod 600 "$RCODESIGN_KEY_PATH"
+
+          echo "RCODESIGN_CERT=$RCODESIGN_CERT_PATH" >> "$GITHUB_ENV"
+          echo "RCODESIGN_KEY=$RCODESIGN_KEY_PATH" >> "$GITHUB_ENV"
+          echo "RELEASE_SIGNING_STRATEGY=rcodesign" >> "$GITHUB_ENV"
+
       - name: Install icon build dependency
         run: brew list librsvg >/dev/null 2>&1 || brew install librsvg
 
       - name: Build app bundle
+        env:
+          CODESIGN_IDENTITY: ${{ secrets.APPLE_CODESIGN_IDENTITY }}
         run: |
-          echo "Building release with explicit ad-hoc signing."
-          make bundle RELEASE=1
+          if [ "$RELEASE_SIGNING_STRATEGY" = "codesign" ]; then
+            echo "Building release with configured signing identity."
+            make bundle RELEASE=1 CODESIGN_IDENTITY="$CODESIGN_IDENTITY"
+          else
+            echo "Building release with stable rcodesign fallback."
+            make bundle RELEASE=1 RCODESIGN_CERT="$RCODESIGN_CERT" RCODESIGN_KEY="$RCODESIGN_KEY"
+          fi
 
       - name: Verify signed app bundle
         run: |
