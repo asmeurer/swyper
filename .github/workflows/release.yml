@@ -51,8 +51,8 @@ jobs:
             echo "Building release with configured signing identity."
             make bundle RELEASE=1 CODESIGN_IDENTITY="$CODESIGN_IDENTITY"
           else
-            echo "No CODESIGN_IDENTITY configured; building release with explicit ad-hoc signing."
-            make bundle RELEASE=1 CODESIGN_IDENTITY=-
+            echo "No CODESIGN_IDENTITY configured; deferring to Makefile signing fallback (rcodesign or ad-hoc)."
+            make bundle RELEASE=1
           fi
 
       - name: Verify signed app bundle
