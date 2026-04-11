@@ -14,46 +14,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Import code signing certificate
-        env:
-          APPLE_CODESIGN_CERTIFICATE_BASE64: ${{ secrets.APPLE_CODESIGN_CERTIFICATE_BASE64 }}
-          APPLE_CODESIGN_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CODESIGN_CERTIFICATE_PASSWORD }}
-        run: |
-          if [ -z "$APPLE_CODESIGN_CERTIFICATE_BASE64" ] && [ -z "$APPLE_CODESIGN_CERTIFICATE_PASSWORD" ]; then
-            echo "No code signing certificate configured; release build will use explicit ad-hoc signing."
-            exit 0
-          fi
-
-          : "${APPLE_CODESIGN_CERTIFICATE_BASE64:?APPLE_CODESIGN_CERTIFICATE_BASE64 secret is required when a certificate is configured}"
-          : "${APPLE_CODESIGN_CERTIFICATE_PASSWORD:?APPLE_CODESIGN_CERTIFICATE_PASSWORD secret is required when a certificate is configured}"
-
-          CERTIFICATE_PATH="$RUNNER_TEMP/developer-id.p12"
-          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
-          KEYCHAIN_PASSWORD="$(uuidgen)"
-
-          echo "$APPLE_CODESIGN_CERTIFICATE_BASE64" | base64 -D > "$CERTIFICATE_PATH"
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security import "$CERTIFICATE_PATH" -P "$APPLE_CODESIGN_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
-          security list-keychains -d user -s "$KEYCHAIN_PATH"
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
-
       - name: Install icon build dependency
         run: brew list librsvg >/dev/null 2>&1 || brew install librsvg
 
       - name: Build app bundle
-        env:
-          CODESIGN_IDENTITY: ${{ secrets.APPLE_CODESIGN_IDENTITY }}
         run: |
-          if [ -n "$CODESIGN_IDENTITY" ]; then
-            echo "Building release with configured signing identity."
-            make bundle RELEASE=1 CODESIGN_IDENTITY="$CODESIGN_IDENTITY"
-          else
-            echo "No CODESIGN_IDENTITY configured; deferring to Makefile signing fallback (rcodesign or ad-hoc)."
-            make bundle RELEASE=1
-          fi
+          echo "Building release with explicit ad-hoc signing."
+          make bundle RELEASE=1
 
       - name: Verify signed app bundle
         run: |

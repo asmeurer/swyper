@@ -33,7 +33,7 @@ swift test     # Run the test suite
 
 - Tests are in the `Tests/` directory. Run `swift test` to execute the test suite. CI runs tests on pushes and PRs to `main` via `.github/workflows/ci.yml`.
 - The release version of Swyper is installed at `/Applications/Swyper.app`. Before running the dev build with `make run`, close the release version first (click the menu bar icon → Quit Swyper) to avoid conflicts.
-- Auto-updates use Sparkle. The EdDSA private key is stored as the `SPARKLE_PRIVATE_KEY` GitHub secret. The release workflow can optionally use `APPLE_CODESIGN_CERTIFICATE_BASE64`, `APPLE_CODESIGN_CERTIFICATE_PASSWORD`, and `APPLE_CODESIGN_IDENTITY` when a signing identity is available; otherwise it falls back to rcodesign or ad-hoc signing. The CI workflow signs releases and updates `appcast.xml` on each tagged release.
+- Auto-updates use Sparkle. The EdDSA private key is stored as the `SPARKLE_PRIVATE_KEY` GitHub secret. The release workflow always uses explicit ad-hoc signing and updates `appcast.xml` on each tagged release.
 
 ## Releasing
 

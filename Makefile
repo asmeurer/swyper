@@ -15,15 +15,7 @@ ifndef RELEASE
   DISPLAY_VERSION := $(VERSION)-dev.$(shell git rev-parse --short HEAD)
 endif
 
-# Code signing: CODESIGN_IDENTITY signs with an installed non-ad-hoc identity.
-# For builds without CODESIGN_IDENTITY, rcodesign with a self-signed certificate
-# produces a stable designated requirement, falling back to fully verified
-# ad-hoc signing for the entire bundle.
-CODESIGN_IDENTITY ?=
-CODESIGN_IDENTITY_TRIMMED := $(strip $(CODESIGN_IDENTITY))
-RCODESIGN := $(shell command -v rcodesign 2>/dev/null)
-RCODESIGN_CERT := $(HOME)/.config/swyper/swyper-rcodesign.crt
-RCODESIGN_KEY := $(HOME)/.config/swyper/swyper-rcodesign.key
+# Code signing: Swyper only supports ad-hoc signing for local and release builds.
 
 build:
 	swift build -c release
@@ -51,33 +43,11 @@ bundle: build $(APP_ICON)
 	@cp "$(APP_ICON)" "$(APP_BUNDLE)/Contents/Resources/"
 	@cp -RP "$(SPARKLE_FRAMEWORK)" "$(APP_BUNDLE)/Contents/Frameworks/"
 	@install_name_tool -add_rpath @executable_path/../Frameworks "$(APP_BUNDLE)/Contents/MacOS/Swyper" 2>/dev/null || true
-ifneq ($(CODESIGN_IDENTITY_TRIMMED),)
-ifeq ($(CODESIGN_IDENTITY_TRIMMED),-)
 	@codesign --force --deep --sign - "$(APP_BUNDLE)/Contents/Frameworks/Sparkle.framework"
 	@codesign --force --sign - --entitlements Swyper.entitlements "$(APP_BUNDLE)"
 	@codesign --verify --deep --strict --verbose=2 "$(APP_BUNDLE)/Contents/Frameworks/Sparkle.framework"
 	@codesign --verify --deep --strict --verbose=2 "$(APP_BUNDLE)"
 	@echo "Built $(APP_BUNDLE) (v$(DISPLAY_VERSION)) [ad-hoc signed]"
-else
-	@codesign --force --deep --sign "$(CODESIGN_IDENTITY)" --options runtime "$(APP_BUNDLE)/Contents/Frameworks/Sparkle.framework"
-	@codesign --force --sign "$(CODESIGN_IDENTITY)" --options runtime --entitlements Swyper.entitlements "$(APP_BUNDLE)"
-	@codesign --verify --deep --strict --verbose=2 "$(APP_BUNDLE)/Contents/Frameworks/Sparkle.framework"
-	@codesign --verify --deep --strict --verbose=2 "$(APP_BUNDLE)"
-	@echo "Built $(APP_BUNDLE) (v$(DISPLAY_VERSION)) [signed with codesign: $(CODESIGN_IDENTITY)]"
-endif
-else ifneq ($(and $(RCODESIGN),$(wildcard $(RCODESIGN_CERT)),$(wildcard $(RCODESIGN_KEY))),)
-	@rcodesign sign --pem-source "$(RCODESIGN_KEY)" --pem-source "$(RCODESIGN_CERT)" \
-		--code-signature-flags runtime --entitlements-xml-path Swyper.entitlements "$(APP_BUNDLE)" >/dev/null
-	@codesign --verify --deep --strict --verbose=2 "$(APP_BUNDLE)/Contents/Frameworks/Sparkle.framework"
-	@codesign --verify --deep --strict --verbose=2 "$(APP_BUNDLE)"
-	@echo "Built $(APP_BUNDLE) (v$(DISPLAY_VERSION)) [signed with rcodesign]"
-else
-	@codesign --force --deep --sign - "$(APP_BUNDLE)/Contents/Frameworks/Sparkle.framework"
-	@codesign --force --sign - --entitlements Swyper.entitlements "$(APP_BUNDLE)"
-	@codesign --verify --deep --strict --verbose=2 "$(APP_BUNDLE)/Contents/Frameworks/Sparkle.framework"
-	@codesign --verify --deep --strict --verbose=2 "$(APP_BUNDLE)"
-	@echo "Built $(APP_BUNDLE) (v$(DISPLAY_VERSION)) [ad-hoc signed]"
-endif
 
 run: bundle
 	@open "$(APP_BUNDLE)"
