@@ -2,6 +2,13 @@
 
 All notable changes to Swyper will be documented in this file.
 
+## [0.4.1] - 2026-04-11
+
+- Restore stable self-signed release signing in GitHub Actions using `RCODESIGN_CERT_PEM` and `RCODESIGN_KEY_PEM`
+- Fix ad-hoc bundle signing for local non-release builds
+- Remove unsupported release signing fallbacks so published updates always keep a stable code identity
+- Document the release secret requirements for self-signed and Apple-signed builds
+
 ## [0.4.0] - 2026-04-10
 
 - Add configurable swipe sensitivity with a numeric threshold control

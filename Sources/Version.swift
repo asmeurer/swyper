@@ -15,7 +15,7 @@ private func resolveAppVersion() -> String {
         return bundledVersion
     }
 
-    return sourceCheckoutVersion() ?? "0.4.0"
+    return sourceCheckoutVersion() ?? "0.4.1"
 }
 
 private func sourceCheckoutVersion() -> String? {
