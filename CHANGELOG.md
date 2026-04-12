@@ -2,6 +2,10 @@
 
 All notable changes to Swyper will be documented in this file.
 
+## [0.4.2] - 2026-04-11
+
+- Fix self-signed GitHub release builds by avoiding an `rcodesign` environment variable collision during bundle signing
+
 ## [0.4.1] - 2026-04-11
 
 - Restore stable self-signed release signing in GitHub Actions using `RCODESIGN_CERT_PEM` and `RCODESIGN_KEY_PEM`
