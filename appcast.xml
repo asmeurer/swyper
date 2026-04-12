@@ -3,14 +3,17 @@
   <channel>
     <title>Swyper Updates</title>
     <item>
-      <title>Version 0.3.0</title>
-      <pubDate>Fri, 10 Apr 2026 01:07:11 +0000</pubDate>
-      <sparkle:version>0.3.0</sparkle:version>
-      <sparkle:shortVersionString>0.3.0</sparkle:shortVersionString>
+      <title>Version 0.4.2</title>
+      <pubDate>Sun, 12 Apr 2026 06:14:32 +0000</pubDate>
+      <sparkle:version>0.4.2</sparkle:version>
+      <sparkle:shortVersionString>0.4.2</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-      <enclosure url="https://github.com/asmeurer/swyper/releases/download/v0.3.0/Swyper.zip"
-                 sparkle:edSignature="hEHQX5zErzeHiwJdsHMyhcN+cw/9w5JtnWXD+dd5Jj62ogYiYfU9Ro3cBNofLgfwJFDo8iNFgK05wNJe2wDADQ=="
-                 length="1211580"
+      <description><![CDATA[<ul>
+<li>Fix self-signed GitHub release builds by avoiding an `rcodesign` environment variable collision during bundle signing</li>
+</ul>]]></description>
+      <enclosure url="https://github.com/asmeurer/swyper/releases/download/v0.4.2/Swyper.zip"
+                 sparkle:edSignature="1Cd7sD3I4Jx491eqZsQn0N1AlNyzZ8MGSrHspuRYlaFD1zvV05bH9spz9WrddwD60WqAkRXtgqeya/9BKNmqCQ=="
+                 length="1279655"
                  type="application/octet-stream" />
     </item>
   </channel>
