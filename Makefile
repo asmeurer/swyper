@@ -23,8 +23,9 @@ endif
 CODESIGN_IDENTITY ?=
 CODESIGN_IDENTITY_TRIMMED := $(strip $(CODESIGN_IDENTITY))
 RCODESIGN ?= $(shell command -v rcodesign 2>/dev/null)
-SWYPER_RCODESIGN_CERT ?= $(HOME)/.config/swyper/swyper-rcodesign.crt
-SWYPER_RCODESIGN_KEY ?= $(HOME)/.config/swyper/swyper-rcodesign.key
+# Prefer the project-specific overrides, but keep the legacy names working.
+SWYPER_RCODESIGN_CERT ?= $(if $(strip $(RCODESIGN_CERT)),$(RCODESIGN_CERT),$(HOME)/.config/swyper/swyper-rcodesign.crt)
+SWYPER_RCODESIGN_KEY ?= $(if $(strip $(RCODESIGN_KEY)),$(RCODESIGN_KEY),$(HOME)/.config/swyper/swyper-rcodesign.key)
 HAS_RCODESIGN_SIGNING := $(and $(RCODESIGN),$(wildcard $(SWYPER_RCODESIGN_CERT)),$(wildcard $(SWYPER_RCODESIGN_KEY)))
 
 validate-release-signing:
@@ -36,6 +37,7 @@ validate-release-signing:
 	@if [ -n "$(RELEASE)" ] && [ -z "$(CODESIGN_IDENTITY_TRIMMED)" ] && [ -z "$(HAS_RCODESIGN_SIGNING)" ]; then \
 		echo "error: RELEASE=1 requires a stable signing identity." >&2; \
 		echo "       Configure CODESIGN_IDENTITY or provide rcodesign via SWYPER_RCODESIGN_CERT/SWYPER_RCODESIGN_KEY." >&2; \
+		echo "       Legacy RCODESIGN_CERT/RCODESIGN_KEY overrides are still accepted." >&2; \
 		exit 1; \
 	fi
 
