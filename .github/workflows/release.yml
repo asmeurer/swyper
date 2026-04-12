@@ -61,8 +61,8 @@ jobs:
           printf '%s\n' "$RCODESIGN_KEY_PEM" > "$RCODESIGN_KEY_PATH"
           chmod 600 "$RCODESIGN_KEY_PATH"
 
-          echo "RCODESIGN_CERT=$RCODESIGN_CERT_PATH" >> "$GITHUB_ENV"
-          echo "RCODESIGN_KEY=$RCODESIGN_KEY_PATH" >> "$GITHUB_ENV"
+          echo "SWYPER_RCODESIGN_CERT=$RCODESIGN_CERT_PATH" >> "$GITHUB_ENV"
+          echo "SWYPER_RCODESIGN_KEY=$RCODESIGN_KEY_PATH" >> "$GITHUB_ENV"
           echo "RELEASE_SIGNING_STRATEGY=rcodesign" >> "$GITHUB_ENV"
 
       - name: Install icon build dependency
@@ -77,7 +77,7 @@ jobs:
             make bundle RELEASE=1 CODESIGN_IDENTITY="$CODESIGN_IDENTITY"
           else
             echo "Building release with stable rcodesign fallback."
-            make bundle RELEASE=1 RCODESIGN_CERT="$RCODESIGN_CERT" RCODESIGN_KEY="$RCODESIGN_KEY"
+            make bundle RELEASE=1 RCODESIGN_CERT="$SWYPER_RCODESIGN_CERT" RCODESIGN_KEY="$SWYPER_RCODESIGN_KEY"
           fi
 
       - name: Verify signed app bundle
