@@ -23,9 +23,9 @@ endif
 CODESIGN_IDENTITY ?=
 CODESIGN_IDENTITY_TRIMMED := $(strip $(CODESIGN_IDENTITY))
 RCODESIGN ?= $(shell command -v rcodesign 2>/dev/null)
-RCODESIGN_CERT ?= $(HOME)/.config/swyper/swyper-rcodesign.crt
-RCODESIGN_KEY ?= $(HOME)/.config/swyper/swyper-rcodesign.key
-HAS_RCODESIGN_SIGNING := $(and $(RCODESIGN),$(wildcard $(RCODESIGN_CERT)),$(wildcard $(RCODESIGN_KEY)))
+SWYPER_RCODESIGN_CERT ?= $(HOME)/.config/swyper/swyper-rcodesign.crt
+SWYPER_RCODESIGN_KEY ?= $(HOME)/.config/swyper/swyper-rcodesign.key
+HAS_RCODESIGN_SIGNING := $(and $(RCODESIGN),$(wildcard $(SWYPER_RCODESIGN_CERT)),$(wildcard $(SWYPER_RCODESIGN_KEY)))
 
 validate-release-signing:
 	@if [ -n "$(RELEASE)" ] && [ "$(CODESIGN_IDENTITY_TRIMMED)" = "-" ]; then \
@@ -35,7 +35,7 @@ validate-release-signing:
 	fi
 	@if [ -n "$(RELEASE)" ] && [ -z "$(CODESIGN_IDENTITY_TRIMMED)" ] && [ -z "$(HAS_RCODESIGN_SIGNING)" ]; then \
 		echo "error: RELEASE=1 requires a stable signing identity." >&2; \
-		echo "       Configure CODESIGN_IDENTITY or provide rcodesign via RCODESIGN_CERT/RCODESIGN_KEY." >&2; \
+		echo "       Configure CODESIGN_IDENTITY or provide rcodesign via SWYPER_RCODESIGN_CERT/SWYPER_RCODESIGN_KEY." >&2; \
 		exit 1; \
 	fi
 
@@ -80,7 +80,7 @@ else
 	@echo "Built $(APP_BUNDLE) (v$(DISPLAY_VERSION)) [signed with codesign: $(CODESIGN_IDENTITY)]"
 endif
 else ifneq ($(HAS_RCODESIGN_SIGNING),)
-	@$(RCODESIGN) sign --pem-source "$(RCODESIGN_KEY)" --pem-source "$(RCODESIGN_CERT)" \
+	@$(RCODESIGN) sign --pem-source "$(SWYPER_RCODESIGN_KEY)" --pem-source "$(SWYPER_RCODESIGN_CERT)" \
 		--code-signature-flags runtime --entitlements-xml-path Swyper.entitlements "$(APP_BUNDLE)" >/dev/null
 	@codesign --verify --deep --strict --verbose=2 "$(APP_BUNDLE)/Contents/Frameworks/Sparkle.framework"
 	@codesign --verify --deep --strict --verbose=2 "$(APP_BUNDLE)"
