@@ -9,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let permissionChecker = PermissionChecker()
     private var multitouchManager: MultitouchManager?
     private var scrollSuppressor: ScrollSuppressor?
+    private var scrollSuppressionController: ScrollSuppressionController?
     private let logger = Logger(subsystem: "com.swyper.app", category: "app")
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -25,6 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let suppressor = ScrollSuppressor()
         scrollSuppressor = suppressor
+        scrollSuppressionController = ScrollSuppressionController(suppressor: suppressor)
         permissionChecker.onAccessibilityPermissionChanged = { [weak self] _ in
             self?.updateScrollSuppressorState()
         }
@@ -48,7 +50,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         permissionChecker.stopChecking()
         multitouchManager?.stop()
-        scrollSuppressor?.stop()
+        scrollSuppressionController?.stop()
     }
 
     private func handleSwipe(_ direction: SwipeDirection) {
@@ -71,12 +73,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func updateScrollSuppressorState() {
-        guard let scrollSuppressor else { return }
-
-        if configManager.config.isEnabled && permissionChecker.isAccessibilityGranted {
-            scrollSuppressor.start()
-        } else {
-            scrollSuppressor.stop()
-        }
+        scrollSuppressionController?.update(
+            isEnabled: configManager.config.isEnabled,
+            isAccessibilityGranted: permissionChecker.isAccessibilityGranted
+        )
     }
 }
