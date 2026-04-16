@@ -28,14 +28,33 @@ struct ScrollSuppressionControllerTests {
         #expect(suppressor.startCount == 1)
         #expect(suppressor.stopCount == 0)
     }
+
+    @Test("Failed scroll suppression start is retried while enabled")
+    func failedStartIsRetried() {
+        let suppressor = MockScrollSuppressor(results: [false, true])
+        let controller = ScrollSuppressionController(suppressor: suppressor)
+
+        controller.update(isEnabled: true, isAccessibilityGranted: true)
+        controller.update(isEnabled: true, isAccessibilityGranted: true)
+
+        #expect(suppressor.startCount == 2)
+        #expect(suppressor.stopCount == 0)
+    }
 }
 
 private final class MockScrollSuppressor: ScrollSuppressing {
+    private let startResults: [Bool]
     private(set) var startCount = 0
     private(set) var stopCount = 0
 
-    func start() {
+    init(results: [Bool] = [true]) {
+        self.startResults = results
+    }
+
+    func start() -> Bool {
         startCount += 1
+        let index = min(startCount - 1, startResults.count - 1)
+        return startResults[index]
     }
 
     func stop() {

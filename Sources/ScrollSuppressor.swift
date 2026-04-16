@@ -32,8 +32,8 @@ final class ScrollSuppressor: @unchecked Sendable {
         }
     }
 
-    func start() {
-        guard eventTap == nil else { return }
+    func start() -> Bool {
+        guard eventTap == nil else { return true }
 
         let refcon = Unmanaged.passUnretained(self).toOpaque()
         let mask: CGEventMask = 1 << CGEventType.scrollWheel.rawValue
@@ -47,7 +47,7 @@ final class ScrollSuppressor: @unchecked Sendable {
             userInfo: refcon
         ) else {
             logger.error("Failed to create scroll event tap — check accessibility permission")
-            return
+            return false
         }
 
         let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
@@ -58,6 +58,7 @@ final class ScrollSuppressor: @unchecked Sendable {
         self.runLoopSource = source
         isActive.withLock { $0 = true }
         logger.info("Scroll suppressor started")
+        return true
     }
 
     func stop() {

@@ -1,5 +1,5 @@
 protocol ScrollSuppressing: AnyObject {
-    func start()
+    func start() -> Bool
     func stop()
 }
 
@@ -17,10 +17,10 @@ final class ScrollSuppressionController {
         let shouldRun = isEnabled && isAccessibilityGranted
         guard shouldRun != isRunning else { return }
 
-        isRunning = shouldRun
         if shouldRun {
-            suppressor.start()
+            isRunning = suppressor.start()
         } else {
+            isRunning = false
             suppressor.stop()
         }
     }
