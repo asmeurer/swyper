@@ -8,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let updaterManager = UpdaterManager()
     let permissionChecker = PermissionChecker()
     private var multitouchManager: MultitouchManager?
+    private var scrollSuppressor: ScrollSuppressor?
     private let logger = Logger(subsystem: "com.swyper.app", category: "app")
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -23,6 +24,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         mtManager.onSwipe = { [weak self] direction in
             self?.handleSwipe(direction)
         }
+
+        let suppressor = ScrollSuppressor()
+        suppressor.start()
+        scrollSuppressor = suppressor
+        mtManager.onThreeFingerFrame = { [weak suppressor] in
+            suppressor?.noteThreeFingerActivity()
+        }
+
         mtManager.start()
 
         configManager.onConfigChanged = { [weak self] in
@@ -36,6 +45,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         permissionChecker.stopChecking()
         multitouchManager?.stop()
+        scrollSuppressor?.stop()
     }
 
     private func handleSwipe(_ direction: SwipeDirection) {

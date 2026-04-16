@@ -48,6 +48,13 @@ private struct SwipeState {
     var swipeThreshold: Float = 0.08
 }
 
+private struct TouchInfo: Sendable {
+    let id: Int32
+    let state: Int32
+    let x: Float
+    let y: Float
+}
+
 // MARK: - File-scope C callback
 
 private let touchCallback: MTContactFrameCallback = { _, data, nFingers, _, _, refcon in
@@ -90,6 +97,9 @@ func detectSwipe(fingers: [Int32: FingerTrack], threshold: Float) -> SwipeDirect
 
 final class MultitouchManager: @unchecked Sendable {
     var onSwipe: (@MainActor @Sendable (SwipeDirection) -> Void)?
+    /// Fires on every frame where exactly 3 fingers are present. Invoked from the
+    /// multitouch background thread — handlers must be thread-safe and cheap.
+    var onThreeFingerFrame: (@Sendable () -> Void)?
 
     private let lock = OSAllocatedUnfairLock(initialState: SwipeState())
     private let logger = Logger(subsystem: "com.swyper.app", category: "multitouch")
@@ -168,13 +178,6 @@ final class MultitouchManager: @unchecked Sendable {
     func processFrame(data: UnsafeMutableRawPointer, fingerCount: Int) {
         guard fingerCount > 0 else { return }
 
-        // Read touch data for all active fingers
-        struct TouchInfo: Sendable {
-            let id: Int32
-            let state: Int32
-            let x: Float
-            let y: Float
-        }
         var touches: [TouchInfo] = []
         let rawPtr = UnsafeRawPointer(data)
 
@@ -194,40 +197,13 @@ final class MultitouchManager: @unchecked Sendable {
 
         let activeTouches = touches
 
-        lock.withLock { state in
-            if activeTouches.count == 3 {
-                if !state.isTracking {
-                    // Start tracking: record starting positions
-                    state.isTracking = true
-                    state.hasFired = false
-                    state.fingers.removeAll()
-                    for touch in activeTouches {
-                        state.fingers[touch.id] = FingerTrack(
-                            startX: touch.x, startY: touch.y,
-                            currentX: touch.x, currentY: touch.y
-                        )
-                    }
-                    logger.debug("Started 3-finger tracking")
-                } else if !state.hasFired {
-                    // Update current positions
-                    for touch in activeTouches where state.fingers[touch.id] != nil {
-                        state.fingers[touch.id] = FingerTrack(
-                            startX: state.fingers[touch.id]?.startX ?? touch.x,
-                            startY: state.fingers[touch.id]?.startY ?? touch.y,
-                            currentX: touch.x,
-                            currentY: touch.y
-                        )
-                    }
-
-                    // Check for swipe
-                    if let direction = detectSwipeDirection(fingers: state.fingers, threshold: state.swipeThreshold) {
-                        state.hasFired = true
-                        logger.info("Swipe detected: \(direction.rawValue)")
-                        fireSwipe(direction)
-                    }
-                }
-            } else {
-                // Reset when not exactly 3 fingers
+        if activeTouches.count == 3 {
+            onThreeFingerFrame?()
+            lock.withLock { state in
+                updateTrackingWithThreeFingers(state: &state, touches: activeTouches)
+            }
+        } else {
+            lock.withLock { state in
                 if state.isTracking {
                     logger.debug("Tracking reset")
                     state.isTracking = false
@@ -235,6 +211,42 @@ final class MultitouchManager: @unchecked Sendable {
                     state.fingers.removeAll()
                 }
             }
+        }
+    }
+
+    private func updateTrackingWithThreeFingers(
+        state: inout SwipeState,
+        touches: [TouchInfo]
+    ) {
+        if !state.isTracking {
+            state.isTracking = true
+            state.hasFired = false
+            state.fingers.removeAll()
+            for touch in touches {
+                state.fingers[touch.id] = FingerTrack(
+                    startX: touch.x, startY: touch.y,
+                    currentX: touch.x, currentY: touch.y
+                )
+            }
+            logger.debug("Started 3-finger tracking")
+            return
+        }
+
+        guard !state.hasFired else { return }
+
+        for touch in touches where state.fingers[touch.id] != nil {
+            state.fingers[touch.id] = FingerTrack(
+                startX: state.fingers[touch.id]?.startX ?? touch.x,
+                startY: state.fingers[touch.id]?.startY ?? touch.y,
+                currentX: touch.x,
+                currentY: touch.y
+            )
+        }
+
+        if let direction = detectSwipeDirection(fingers: state.fingers, threshold: state.swipeThreshold) {
+            state.hasFired = true
+            logger.info("Swipe detected: \(direction.rawValue)")
+            fireSwipe(direction)
         }
     }
 
