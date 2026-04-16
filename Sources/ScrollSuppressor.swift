@@ -15,6 +15,7 @@ final class ScrollSuppressor: @unchecked Sendable {
     static let cooldown: TimeInterval = 0.2
 
     private let suppressUntil = OSAllocatedUnfairLock<CFAbsoluteTime>(initialState: 0)
+    private let isActive = OSAllocatedUnfairLock(initialState: false)
     private let logger = Logger(subsystem: "com.swyper.app", category: "scrollsuppressor")
 
     private var eventTap: CFMachPort?
@@ -23,6 +24,8 @@ final class ScrollSuppressor: @unchecked Sendable {
     /// Called from the multitouch thread whenever 3 fingers are observed. Extends
     /// the suppression deadline to `now + cooldown`.
     func noteThreeFingerActivity(cooldown: TimeInterval = ScrollSuppressor.cooldown) {
+        guard isActive.withLock({ $0 }) else { return }
+
         let deadline = CFAbsoluteTimeGetCurrent() + cooldown
         suppressUntil.withLock { current in
             if current < deadline { current = deadline }
@@ -53,10 +56,18 @@ final class ScrollSuppressor: @unchecked Sendable {
 
         self.eventTap = tap
         self.runLoopSource = source
+        isActive.withLock { $0 = true }
         logger.info("Scroll suppressor started")
     }
 
     func stop() {
+        let wasActive = isActive.withLock { state in
+            let previousValue = state
+            state = false
+            return previousValue
+        }
+        guard eventTap != nil || runLoopSource != nil || wasActive else { return }
+
         if let tap = eventTap {
             CGEvent.tapEnable(tap: tap, enable: false)
         }
@@ -65,6 +76,7 @@ final class ScrollSuppressor: @unchecked Sendable {
         }
         eventTap = nil
         runLoopSource = nil
+        suppressUntil.withLock { $0 = 0 }
         logger.info("Scroll suppressor stopped")
     }
 

@@ -12,8 +12,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let logger = Logger(subsystem: "com.swyper.app", category: "app")
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        permissionChecker.startChecking()
-
         guard let mtManager = MultitouchManager() else {
             logger.error("Failed to load MultitouchSupport framework")
             return
@@ -26,8 +24,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let suppressor = ScrollSuppressor()
-        suppressor.start()
         scrollSuppressor = suppressor
+        permissionChecker.onAccessibilityPermissionChanged = { [weak self] _ in
+            self?.updateScrollSuppressorState()
+        }
+        permissionChecker.startChecking()
         mtManager.onThreeFingerFrame = { [weak suppressor] in
             suppressor?.noteThreeFingerActivity()
         }
@@ -37,7 +38,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         configManager.onConfigChanged = { [weak self] in
             guard let self else { return }
             self.multitouchManager?.updateSwipeThreshold(self.configManager.config.swipeThresholdValue)
+            self.updateScrollSuppressorState()
         }
+        updateScrollSuppressorState()
 
         logger.info("Swyper started")
     }
@@ -65,5 +68,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         logger.debug("Swipe \(direction.rawValue) -> \(shortcut.displayString) (app: \(bundleID ?? "none"))")
         KeySimulator.postKeyEvent(shortcut: shortcut)
+    }
+
+    private func updateScrollSuppressorState() {
+        guard let scrollSuppressor else { return }
+
+        if configManager.config.isEnabled && permissionChecker.isAccessibilityGranted {
+            scrollSuppressor.start()
+        } else {
+            scrollSuppressor.stop()
+        }
     }
 }

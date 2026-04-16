@@ -4,15 +4,17 @@ import Observation
 @MainActor
 @Observable
 final class PermissionChecker {
+    var onAccessibilityPermissionChanged: ((Bool) -> Void)?
     private(set) var isAccessibilityGranted = AXIsProcessTrusted()
     private var timer: Timer?
 
     func startChecking() {
-        isAccessibilityGranted = AXIsProcessTrusted()
+        updateAccessibilityStatus(AXIsProcessTrusted())
         // Poll periodically so the UI updates after the user grants permission
+        timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                self?.isAccessibilityGranted = AXIsProcessTrusted()
+                self?.updateAccessibilityStatus(AXIsProcessTrusted())
             }
         }
     }
@@ -20,5 +22,13 @@ final class PermissionChecker {
     func stopChecking() {
         timer?.invalidate()
         timer = nil
+    }
+
+    private func updateAccessibilityStatus(_ isGranted: Bool) {
+        let previousValue = isAccessibilityGranted
+        isAccessibilityGranted = isGranted
+
+        guard previousValue != isGranted else { return }
+        onAccessibilityPermissionChanged?(isGranted)
     }
 }
