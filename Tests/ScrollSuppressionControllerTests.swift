@@ -4,6 +4,7 @@ import Testing
 @Suite("Scroll suppression transitions")
 struct ScrollSuppressionControllerTests {
     @Test("Disabling Swyper stops active scroll suppression once")
+    @MainActor
     func disablingStopsSuppression() {
         let suppressor = MockScrollSuppressor()
         let controller = ScrollSuppressionController(suppressor: suppressor)
@@ -17,6 +18,7 @@ struct ScrollSuppressionControllerTests {
     }
 
     @Test("Granting accessibility permission retries scroll suppression start")
+    @MainActor
     func grantingPermissionStartsSuppression() {
         let suppressor = MockScrollSuppressor()
         let controller = ScrollSuppressionController(suppressor: suppressor)
@@ -29,15 +31,36 @@ struct ScrollSuppressionControllerTests {
         #expect(suppressor.stopCount == 0)
     }
 
-    @Test("Failed scroll suppression start is retried while enabled")
-    func failedStartIsRetried() {
+    @Test("Failed scroll suppression start retries automatically while enabled")
+    @MainActor
+    func failedStartIsRetriedAutomatically() async throws {
         let suppressor = MockScrollSuppressor(results: [false, true])
-        let controller = ScrollSuppressionController(suppressor: suppressor)
+        let controller = ScrollSuppressionController(
+            suppressor: suppressor,
+            retryDelay: .milliseconds(10)
+        )
 
         controller.update(isEnabled: true, isAccessibilityGranted: true)
-        controller.update(isEnabled: true, isAccessibilityGranted: true)
+        try await Task.sleep(for: .milliseconds(50))
 
         #expect(suppressor.startCount == 2)
+        #expect(suppressor.stopCount == 0)
+    }
+
+    @Test("Disabling Swyper cancels a pending retry")
+    @MainActor
+    func disablingCancelsPendingRetry() async throws {
+        let suppressor = MockScrollSuppressor(results: [false, true])
+        let controller = ScrollSuppressionController(
+            suppressor: suppressor,
+            retryDelay: .milliseconds(25)
+        )
+
+        controller.update(isEnabled: true, isAccessibilityGranted: true)
+        controller.update(isEnabled: false, isAccessibilityGranted: true)
+        try await Task.sleep(for: .milliseconds(60))
+
+        #expect(suppressor.startCount == 1)
         #expect(suppressor.stopCount == 0)
     }
 }
