@@ -141,4 +141,38 @@ struct SwipeDetectionTests {
         // absDX == threshold, not >, so nil
         #expect(detectSwipe(fingers: fingers, threshold: 0.08) == nil)
     }
+
+    @Test("Stationary wrist plus two swiping fingers returns nil")
+    func stationaryWristRejected() {
+        // Simulates a resting wrist (at the bottom of the trackpad, not moving) plus
+        // two fingers from the other hand doing a two-finger swipe. Average deltas
+        // would cross the threshold, but one contact has not moved at all.
+        let fingers = makeFingers(
+            starts: [(0.3, 0.5), (0.3, 0.5), (0.5, 0.05)],
+            currents: [(0.55, 0.5), (0.55, 0.5), (0.5, 0.05)]
+        )
+        #expect(detectSwipe(fingers: fingers, threshold: defaultThreshold) == nil)
+    }
+
+    @Test("Two swiping fingers plus barely-moving contact returns nil")
+    func laggingContactRejected() {
+        // Two fingers move past the threshold, third barely twitches — still looks
+        // like a swipe by the old average but the third contact hasn't really moved.
+        let fingers = makeFingers(
+            starts: [(0.3, 0.5), (0.3, 0.5), (0.5, 0.1)],
+            currents: [(0.55, 0.5), (0.55, 0.5), (0.51, 0.1)]
+        )
+        #expect(detectSwipe(fingers: fingers, threshold: defaultThreshold) == nil)
+    }
+
+    @Test("Three fingers moving together with slight variation detects swipe")
+    func threeFingersModestVariationAccepted() {
+        // Realistic swipe: fingers don't move identical amounts, but all clearly move
+        // in the swipe direction past the per-finger floor (threshold/2 = 0.04).
+        let fingers = makeFingers(
+            starts: [(0.3, 0.5), (0.3, 0.5), (0.3, 0.5)],
+            currents: [(0.5, 0.5), (0.55, 0.5), (0.45, 0.5)]
+        )
+        #expect(detectSwipe(fingers: fingers, threshold: defaultThreshold) == .right)
+    }
 }

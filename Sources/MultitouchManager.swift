@@ -69,24 +69,25 @@ private let touchCallback: MTContactFrameCallback = { _, data, nFingers, _, _, r
 func detectSwipe(fingers: [Int32: FingerTrack], threshold: Float) -> SwipeDirection? {
     guard fingers.count == 3 else { return nil }
 
-    var totalDX: Float = 0
-    var totalDY: Float = 0
-
-    for (_, track) in fingers {
-        totalDX += track.currentX - track.startX
-        totalDY += track.currentY - track.startY
-    }
-
-    let avgDX = totalDX / 3.0
-    let avgDY = totalDY / 3.0
+    let deltas = fingers.values.map { (dx: $0.currentX - $0.startX, dy: $0.currentY - $0.startY) }
+    let avgDX = deltas.reduce(0) { $0 + $1.dx } / 3.0
+    let avgDY = deltas.reduce(0) { $0 + $1.dy } / 3.0
 
     let absDX = abs(avgDX)
     let absDY = abs(avgDY)
 
-    // Must exceed threshold in the dominant axis
+    // Each finger must move in the dominant direction by at least this much. Rejects
+    // false positives where a stationary contact (e.g. a resting wrist) gets averaged
+    // in with two fingers that are genuinely swiping.
+    let perFingerMin = threshold / 2
+
     if absDX > absDY && absDX > threshold {
+        let sign: Float = avgDX > 0 ? 1 : -1
+        guard deltas.allSatisfy({ $0.dx * sign > perFingerMin }) else { return nil }
         return avgDX > 0 ? .right : .left
     } else if absDY > absDX && absDY > threshold {
+        let sign: Float = avgDY > 0 ? 1 : -1
+        guard deltas.allSatisfy({ $0.dy * sign > perFingerMin }) else { return nil }
         return avgDY > 0 ? .up : .down
     }
 
