@@ -2,6 +2,13 @@
 
 All notable changes to Swyper will be documented in this file.
 
+## [0.5.0] - 2026-04-18
+
+- Suppress stray two-finger scroll events during three-finger swipes to prevent unintended scrolling
+- Reject swipes when a contact stays stationary, reducing false-positive gesture detection
+- Retry scroll suppression startup if it fails to initialize
+- Use an absolute path for `codesign` in the Makefile for more reliable local builds
+
 ## [0.4.2] - 2026-04-11
 
 - Fix self-signed GitHub release builds by avoiding an `rcodesign` environment variable collision during bundle signing
