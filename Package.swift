@@ -14,9 +14,14 @@ let package = Package(
                 .product(name: "Sparkle", package: "Sparkle")
             ],
             path: "Sources",
+            exclude: ["MTDump"],
             swiftSettings: [
                 .unsafeFlags(["-parse-as-library"])
             ]
+        ),
+        .executableTarget(
+            name: "MTDump",
+            path: "Sources/MTDump"
         ),
         .testTarget(
             name: "SwyperTests",

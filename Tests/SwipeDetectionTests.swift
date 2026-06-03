@@ -176,3 +176,25 @@ struct SwipeDetectionTests {
         #expect(detectSwipe(fingers: fingers, threshold: defaultThreshold) == .right)
     }
 }
+
+@Suite("Palm Contact Classification")
+struct PalmContactTests {
+    // Observed sizes from raw touch-record dumps: fingertips read < ~0.8,
+    // resting palm/thumb contacts read 1.0–8.7.
+
+    @Test("Typical fingertip sizes count as fingers", arguments: [Float(0.0), 0.18, 0.5, 0.77])
+    func fingertipSizesAccepted(size: Float) {
+        #expect(isFingerContact(size: size))
+    }
+
+    @Test("Resting palm sizes are rejected", arguments: [Float(1.0), 1.4, 2.4, 8.7])
+    func palmSizesRejected(size: Float) {
+        #expect(!isFingerContact(size: size))
+    }
+
+    @Test("Classification splits exactly at the threshold")
+    func boundaryAtThreshold() {
+        #expect(isFingerContact(size: palmSizeThreshold - 0.0001))
+        #expect(!isFingerContact(size: palmSizeThreshold))
+    }
+}

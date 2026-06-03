@@ -31,6 +31,20 @@ private let kOffsetPathIndex: Int = 16    // Int32 — finger identifier
 private let kOffsetState: Int = 20        // Int32 — touch phase (1=start, 3=touching, …)
 private let kOffsetNormX: Int = 32        // Float — normalized X position [0,1]
 private let kOffsetNormY: Int = 36        // Float — normalized Y position [0,1]
+private let kOffsetSize: Int = 48         // Float — contact area; palms read much larger than fingertips
+
+// A contact whose reported size is at or above this is treated as a palm or
+// thumb base rather than a fingertip, and excluded from swipe detection so a
+// resting palm doesn't break the three-finger count. Determined empirically by
+// dumping raw touch records: fingertips measure < ~0.8 while resting palm/thumb
+// contacts measure > ~1.0 (the dominant palm contact reads 4–8).
+let palmSizeThreshold: Float = 0.9
+
+/// Whether a contact of the given size should count as a fingertip (rather than
+/// a palm/thumb-base contact to be ignored).
+func isFingerContact(size: Float, threshold: Float = palmSizeThreshold) -> Bool {
+    size < threshold
+}
 
 // MARK: - Swipe tracking state
 
@@ -190,6 +204,10 @@ final class MultitouchManager: @unchecked Sendable {
             // Accept any finger that is actively present on the trackpad.
             // macOS 26 uses state 1=start, 3=touching; older versions used 4+.
             if state > 0 {
+                let size = base.load(fromByteOffset: kOffsetSize, as: Float.self)
+                // Skip palm/thumb-base contacts so a resting palm doesn't push
+                // the contact count past three and suppress the gesture.
+                guard isFingerContact(size: size) else { continue }
                 let x = base.load(fromByteOffset: kOffsetNormX, as: Float.self)
                 let y = base.load(fromByteOffset: kOffsetNormY, as: Float.self)
                 touches.append(TouchInfo(id: pathIndex, state: state, x: x, y: y))
