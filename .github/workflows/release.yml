@@ -170,16 +170,32 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           VERSION=$(cat VERSION)
-          gh release create "v${VERSION}" build/Swyper.zip \
-            --title "Swyper v${VERSION}" \
-            --generate-notes
+          # Idempotent: if the release already exists (e.g. a re-run), refresh
+          # its asset instead of failing.
+          if gh release view "v${VERSION}" >/dev/null 2>&1; then
+            gh release upload "v${VERSION}" build/Swyper.zip --clobber
+          else
+            gh release create "v${VERSION}" build/Swyper.zip \
+              --title "Swyper v${VERSION}" \
+              --generate-notes
+          fi
 
       - name: Update appcast in repo
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # The generated appcast.xml is a working-tree change on the (possibly
+          # detached) tag commit. Stash it aside so switching to main's tip
+          # doesn't abort, then restore it so main always gets the freshly
+          # generated appcast (each release fully replaces the file).
+          cp appcast.xml /tmp/appcast.xml
           git fetch origin main
           git checkout -B main origin/main
+          cp /tmp/appcast.xml appcast.xml
           git add appcast.xml
-          git commit -m "Update appcast.xml for v$(cat VERSION)"
-          git push origin main
+          if git diff --cached --quiet; then
+            echo "appcast.xml unchanged; nothing to commit"
+          else
+            git commit -m "Update appcast.xml for v$(cat VERSION)"
+            git push origin main
+          fi
