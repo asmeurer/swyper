@@ -3,20 +3,17 @@
   <channel>
     <title>Swyper Updates</title>
     <item>
-      <title>Version 0.5.0</title>
-      <pubDate>Sat, 18 Apr 2026 15:45:44 +0000</pubDate>
-      <sparkle:version>0.5.0</sparkle:version>
-      <sparkle:shortVersionString>0.5.0</sparkle:shortVersionString>
+      <title>Version 0.5.1</title>
+      <pubDate>Wed, 03 Jun 2026 16:20:14 +0000</pubDate>
+      <sparkle:version>0.5.1</sparkle:version>
+      <sparkle:shortVersionString>0.5.1</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
       <description><![CDATA[<ul>
-<li>Suppress stray two-finger scroll events during three-finger swipes to prevent unintended scrolling</li>
-<li>Reject swipes when a contact stays stationary, reducing false-positive gesture detection</li>
-<li>Retry scroll suppression startup if it fails to initialize</li>
-<li>Use an absolute path for `codesign` in the Makefile for more reliable local builds</li>
+<li>Ignore palm and thumb-base contacts so a resting palm no longer suppresses three-finger swipes</li>
 </ul>]]></description>
-      <enclosure url="https://github.com/asmeurer/swyper/releases/download/v0.5.0/Swyper.zip"
-                 sparkle:edSignature="eEmM69iXC45Pc1AUUdoKKZudoyyJOpiiAN+9DIq7M/WFx0dggDSlZH9gJKUzVhyjmZUIhobCh2YmjAMFPP4WCQ=="
-                 length="1289860"
+      <enclosure url="https://github.com/asmeurer/swyper/releases/download/v0.5.1/Swyper.zip"
+                 sparkle:edSignature="Sowv1+Kd8MuWH90+PCKm06QSt9jCb7p2auZzbQuuvRx3f3EoxmSaQG75IwWQWno6rJsNNL9q5bSK5tslI/o4Ag=="
+                 length="1289954"
                  type="application/octet-stream" />
     </item>
   </channel>
