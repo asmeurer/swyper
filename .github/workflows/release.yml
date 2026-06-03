@@ -189,6 +189,7 @@ jobs:
           # doesn't abort, then restore it so main always gets the freshly
           # generated appcast (each release fully replaces the file).
           cp appcast.xml /tmp/appcast.xml
+          git restore --worktree appcast.xml
           git fetch origin main
           git checkout -B main origin/main
           cp /tmp/appcast.xml appcast.xml
