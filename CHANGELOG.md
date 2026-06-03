@@ -2,6 +2,10 @@
 
 All notable changes to Swyper will be documented in this file.
 
+## [0.5.1] - 2026-06-03
+
+- Ignore palm and thumb-base contacts so a resting palm no longer suppresses three-finger swipes
+
 ## [0.5.0] - 2026-04-18
 
 - Suppress stray two-finger scroll events during three-finger swipes to prevent unintended scrolling
