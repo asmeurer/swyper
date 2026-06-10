@@ -2,6 +2,11 @@
 
 All notable changes to Swyper will be documented in this file.
 
+## [0.6.0] - 2026-06-10
+
+- Make per-app mappings self-contained: once an app has its own mapping, only its shortcuts apply and blank directions no longer fall back to the default
+- Seed new app mappings with a copy of the default shortcuts as a starting point
+
 ## [0.5.1] - 2026-06-03
 
 - Ignore palm and thumb-base contacts so a resting palm no longer suppresses three-finger swipes
