@@ -60,7 +60,10 @@ struct SettingsView: View {
                 if selectedID == "default" {
                     AppRuleEditor(mapping: $cm.config.defaultMapping)
                 } else if let index = cm.config.appMappings.firstIndex(where: { $0.id == selectedID }) {
-                    AppRuleEditor(mapping: $cm.config.appMappings[index])
+                    AppRuleEditor(
+                        mapping: $cm.config.appMappings[index],
+                        defaultMapping: cm.config.defaultMapping
+                    )
                 } else {
                     Text("Select a mapping")
                         .foregroundStyle(.secondary)
