@@ -129,36 +129,6 @@ struct ConfigSerializationTests {
         #expect(decoded.shortcuts[.down] == mapping.shortcuts[.down])
     }
 
-    @Test("AppMapping round-trips disabledDirections through JSON")
-    func appMappingDisabledDirectionsRoundTrip() throws {
-        let mapping = AppMapping(
-            bundleID: "com.test.app",
-            displayName: "Test App",
-            shortcuts: [.up: KeyShortcut(keyCode: UInt16(kVK_ANSI_K), modifierFlags: 0)],
-            disabledDirections: [.left, .down]
-        )
-
-        let data = try encoder.encode(mapping)
-        let decoded = try decoder.decode(AppMapping.self, from: data)
-
-        #expect(decoded.disabledDirections == mapping.disabledDirections)
-    }
-
-    @Test("Decoding AppMapping JSON missing disabledDirections defaults to empty")
-    func backwardCompatibilityMissingDisabledDirections() throws {
-        // Older configs have no disabledDirections key.
-        let json = """
-        {
-            "bundleID": "com.test.app",
-            "displayName": "Test App",
-            "shortcuts": []
-        }
-        """
-        let data = Data(json.utf8)
-        let decoded = try decoder.decode(AppMapping.self, from: data)
-        #expect(decoded.disabledDirections.isEmpty)
-    }
-
     // MARK: - SwipeDirection raw values
 
     @Test("SwipeDirection raw values are stable strings")

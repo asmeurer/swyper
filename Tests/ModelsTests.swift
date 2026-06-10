@@ -232,8 +232,8 @@ struct ConfigShortcutTests {
         #expect(result == shortcut)
     }
 
-    @Test("Falls back to default when app has no shortcut for direction")
-    func fallbackToDefaultShortcut() {
+    @Test("App mapping does not fall back to default for unset directions")
+    func noFallbackWhenAppMappingExists() {
         var config = SwyperConfig()
         let defaultShortcut = KeyShortcut(
             keyCode: UInt16(kVK_ANSI_D),
@@ -251,8 +251,23 @@ struct ConfigShortcutTests {
             )
         ]
 
-        let result = config.shortcut(for: .left, bundleID: "com.example.app")
-        #expect(result == defaultShortcut)
+        // The app mapping has no .left shortcut and must NOT inherit the default.
+        #expect(config.shortcut(for: .left, bundleID: "com.example.app") == nil)
+    }
+
+    @Test("Default mapping still applies for apps without their own mapping")
+    func defaultAppliesForUnmappedApps() {
+        var config = SwyperConfig()
+        let defaultShortcut = KeyShortcut(
+            keyCode: UInt16(kVK_ANSI_D),
+            modifierFlags: CGEventFlags.maskCommand.rawValue
+        )
+        config.defaultMapping = AppMapping(
+            displayName: "Default",
+            shortcuts: [.left: defaultShortcut]
+        )
+
+        #expect(config.shortcut(for: .left, bundleID: "com.unmapped.app") == defaultShortcut)
     }
 
     @Test("Returns nil when nothing configured")
@@ -267,71 +282,5 @@ struct ConfigShortcutTests {
         let config = SwyperConfig()
         let result = config.shortcut(for: .down, bundleID: "com.nonexistent.app")
         #expect(result == nil)
-    }
-
-    @Test("Disabled direction does not fall back to default shortcut")
-    func disabledDirectionSuppressesDefault() {
-        var config = SwyperConfig()
-        let defaultShortcut = KeyShortcut(
-            keyCode: UInt16(kVK_ANSI_D),
-            modifierFlags: CGEventFlags.maskCommand.rawValue
-        )
-        config.defaultMapping = AppMapping(
-            displayName: "Default",
-            shortcuts: [.left: defaultShortcut]
-        )
-        config.appMappings = [
-            AppMapping(
-                bundleID: "com.example.app",
-                displayName: "Example",
-                shortcuts: [:],
-                disabledDirections: [.left]
-            )
-        ]
-
-        // The default has a .left shortcut, but this app disabled .left.
-        #expect(config.shortcut(for: .left, bundleID: "com.example.app") == nil)
-    }
-
-    @Test("Disabling one direction still allows others to inherit the default")
-    func disabledDirectionDoesNotAffectOthers() {
-        var config = SwyperConfig()
-        let left = KeyShortcut(keyCode: UInt16(kVK_ANSI_H), modifierFlags: 0)
-        let right = KeyShortcut(keyCode: UInt16(kVK_ANSI_L), modifierFlags: 0)
-        config.defaultMapping = AppMapping(
-            displayName: "Default",
-            shortcuts: [.left: left, .right: right]
-        )
-        config.appMappings = [
-            AppMapping(
-                bundleID: "com.example.app",
-                displayName: "Example",
-                shortcuts: [:],
-                disabledDirections: [.left]
-            )
-        ]
-
-        #expect(config.shortcut(for: .left, bundleID: "com.example.app") == nil)
-        #expect(config.shortcut(for: .right, bundleID: "com.example.app") == right)
-    }
-
-    @Test("Explicit app shortcut wins even when direction is disabled")
-    func explicitShortcutOverridesDisabled() {
-        var config = SwyperConfig()
-        let appShortcut = KeyShortcut(keyCode: UInt16(kVK_ANSI_R), modifierFlags: 0)
-        config.defaultMapping = AppMapping(
-            displayName: "Default",
-            shortcuts: [.left: KeyShortcut(keyCode: UInt16(kVK_ANSI_D), modifierFlags: 0)]
-        )
-        config.appMappings = [
-            AppMapping(
-                bundleID: "com.example.app",
-                displayName: "Example",
-                shortcuts: [.left: appShortcut],
-                disabledDirections: [.left]
-            )
-        ]
-
-        #expect(config.shortcut(for: .left, bundleID: "com.example.app") == appShortcut)
     }
 }

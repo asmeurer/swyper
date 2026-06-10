@@ -60,10 +60,7 @@ struct SettingsView: View {
                 if selectedID == "default" {
                     AppRuleEditor(mapping: $cm.config.defaultMapping)
                 } else if let index = cm.config.appMappings.firstIndex(where: { $0.id == selectedID }) {
-                    AppRuleEditor(
-                        mapping: $cm.config.appMappings[index],
-                        defaultMapping: cm.config.defaultMapping
-                    )
+                    AppRuleEditor(mapping: $cm.config.appMappings[index])
                 } else {
                     Text("Select a mapping")
                         .foregroundStyle(.secondary)
@@ -115,7 +112,14 @@ struct SettingsView: View {
         .frame(minWidth: 550, minHeight: 350)
         .sheet(isPresented: $showingAppPicker) {
             AppPickerSheet(configManager: configManager) { bundleID, name in
-                let mapping = AppMapping(bundleID: bundleID, displayName: name)
+                // Seed a new app mapping with the default shortcuts as a starting
+                // point. App mappings are self-contained (no fallback), so this
+                // gives a sensible baseline the user can then tweak.
+                let mapping = AppMapping(
+                    bundleID: bundleID,
+                    displayName: name,
+                    shortcuts: cm.config.defaultMapping.shortcuts
+                )
                 cm.config.appMappings.append(mapping)
                 selectedID = bundleID
             }

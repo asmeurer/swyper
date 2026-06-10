@@ -129,39 +129,11 @@ struct AppMapping: Codable, Sendable, Identifiable {
     var bundleID: String?
     var displayName: String
     var shortcuts: [SwipeDirection: KeyShortcut]
-    /// Directions explicitly turned off for this app. A disabled direction does
-    /// not fall back to the default mapping's shortcut. Only meaningful for
-    /// app-specific mappings (bundleID != nil).
-    var disabledDirections: Set<SwipeDirection>
 
-    init(
-        bundleID: String? = nil,
-        displayName: String = "Default",
-        shortcuts: [SwipeDirection: KeyShortcut] = [:],
-        disabledDirections: Set<SwipeDirection> = []
-    ) {
+    init(bundleID: String? = nil, displayName: String = "Default", shortcuts: [SwipeDirection: KeyShortcut] = [:]) {
         self.bundleID = bundleID
         self.displayName = displayName
         self.shortcuts = shortcuts
-        self.disabledDirections = disabledDirections
-    }
-
-    private enum CodingKeys: String, CodingKey {
-        case bundleID
-        case displayName
-        case shortcuts
-        case disabledDirections
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.bundleID = try container.decodeIfPresent(String.self, forKey: .bundleID)
-        self.displayName = try container.decode(String.self, forKey: .displayName)
-        self.shortcuts = try container.decode([SwipeDirection: KeyShortcut].self, forKey: .shortcuts)
-        self.disabledDirections = try container.decodeIfPresent(
-            Set<SwipeDirection>.self,
-            forKey: .disabledDirections
-        ) ?? []
     }
 }
 
@@ -215,18 +187,8 @@ struct SwyperConfig: Codable, Sendable {
     }
 
     func shortcut(for direction: SwipeDirection, bundleID: String?) -> KeyShortcut? {
-        let m = mapping(for: bundleID)
-        if let shortcut = m.shortcuts[direction] {
-            return shortcut
-        }
-        if m.bundleID != nil {
-            // An app mapping with a blank direction inherits the default, unless
-            // the direction has been explicitly disabled for this app.
-            if m.disabledDirections.contains(direction) {
-                return nil
-            }
-            return defaultMapping.shortcuts[direction]
-        }
-        return nil
+        // App-specific mappings are self-contained: when a mapping exists for the
+        // front app, only its shortcuts apply (no fallback to the default).
+        mapping(for: bundleID).shortcuts[direction]
     }
 }
