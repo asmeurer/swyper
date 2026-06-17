@@ -2,6 +2,11 @@
 
 All notable changes to Swyper will be documented in this file.
 
+## [0.7.0] - 2026-06-17
+
+- Add an "About Swyper" menu item with website and repository links
+- Move the "Launch at Login" setting into the Settings dialog
+
 ## [0.6.1] - 2026-06-17
 
 - Ignore three-finger swipes that occur during a four-finger gesture (e.g. switching spaces), so lifting one finger mid-swipe no longer triggers an unintended shortcut
