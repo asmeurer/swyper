@@ -3,17 +3,18 @@
   <channel>
     <title>Swyper Updates</title>
     <item>
-      <title>Version 0.6.1</title>
-      <pubDate>Wed, 17 Jun 2026 06:44:12 +0000</pubDate>
-      <sparkle:version>0.6.1</sparkle:version>
-      <sparkle:shortVersionString>0.6.1</sparkle:shortVersionString>
+      <title>Version 0.7.0</title>
+      <pubDate>Wed, 17 Jun 2026 19:18:59 +0000</pubDate>
+      <sparkle:version>0.7.0</sparkle:version>
+      <sparkle:shortVersionString>0.7.0</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
       <description><![CDATA[<ul>
-<li>Ignore three-finger swipes that occur during a four-finger gesture (e.g. switching spaces), so lifting one finger mid-swipe no longer triggers an unintended shortcut</li>
+<li>Add an &quot;About Swyper&quot; menu item with website and repository links</li>
+<li>Move the &quot;Launch at Login&quot; setting into the Settings dialog</li>
 </ul>]]></description>
-      <enclosure url="https://github.com/asmeurer/swyper/releases/download/v0.6.1/Swyper.zip"
-                 sparkle:edSignature="AWj2BMSEVON5OVl7qrwUFtq2ANFPPnPiQsI2eMkY4xr919LP78bV7GfU+6Y+QRqwOv+YppwR1EHHdn6jFvcCCw=="
-                 length="1289916"
+      <enclosure url="https://github.com/asmeurer/swyper/releases/download/v0.7.0/Swyper.zip"
+                 sparkle:edSignature="+9wG9ji/oMWZS20/xA6SAHZnp+hpFwC6qxYwzJEH7WqKkAnF7KyjyYu2PTYvwUfQxwv9fBRfNHbCymGRnoBYBQ=="
+                 length="1293687"
                  type="application/octet-stream" />
     </item>
   </channel>
