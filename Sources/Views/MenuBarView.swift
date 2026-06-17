@@ -78,7 +78,7 @@ struct MenuBarView: View {
             string: website,
             attributes: [
                 .font: bodyFont,
-                .link: URL(string: website) as Any
+                .link: website
             ]
         ))
 
@@ -91,7 +91,7 @@ struct MenuBarView: View {
             string: repository,
             attributes: [
                 .font: bodyFont,
-                .link: URL(string: repository) as Any
+                .link: repository
             ]
         ))
 
