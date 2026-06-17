@@ -53,12 +53,34 @@ struct MenuBarView: View {
 
         Divider()
 
-        Text("Swyper v\(appVersion)")
-            .foregroundStyle(.secondary)
+        Button("About Swyper") {
+            showAboutPanel()
+        }
 
         Button("Quit Swyper") {
             NSApplication.shared.terminate(nil)
         }
         .keyboardShortcut("q")
+    }
+
+    private func showAboutPanel() {
+        let credits = NSAttributedString(
+            string: "Maps three-finger trackpad swipe gestures to per-app keyboard shortcuts.\n\n"
+                + "https://github.com/asmeurer/swyper",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
+        )
+
+        let options: [NSApplication.AboutPanelOptionKey: Any] = [
+            .applicationName: "Swyper",
+            .applicationVersion: appVersion,
+            .version: "",
+            .credits: credits
+        ]
+
+        NSApp.activate()
+        NSApp.orderFrontStandardAboutPanel(options: options)
     }
 }
