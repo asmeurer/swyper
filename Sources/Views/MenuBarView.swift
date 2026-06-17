@@ -64,14 +64,31 @@ struct MenuBarView: View {
     }
 
     private func showAboutPanel() {
-        let credits = NSAttributedString(
-            string: "Maps three-finger trackpad swipe gestures to per-app keyboard shortcuts.\n\n"
-                + "https://github.com/asmeurer/swyper",
+        let bodyFont = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
+        let credits = NSMutableAttributedString(
+            string: "Maps three-finger trackpad swipe gestures to per-app keyboard shortcuts.\n\n",
             attributes: [
-                .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
+                .font: bodyFont,
                 .foregroundColor: NSColor.secondaryLabelColor
             ]
         )
+
+        let website = "https://github.com/asmeurer/swyper"
+        credits.append(NSAttributedString(
+            string: website,
+            attributes: [
+                .font: bodyFont,
+                .link: URL(string: website) as Any
+            ]
+        ))
+
+        credits.append(NSAttributedString(
+            string: "\n\nBuilt with Claude.",
+            attributes: [
+                .font: bodyFont,
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
+        ))
 
         let options: [NSApplication.AboutPanelOptionKey: Any] = [
             .applicationName: "Swyper",
