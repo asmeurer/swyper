@@ -101,7 +101,7 @@ struct MenuBarView: View {
         ))
 
         credits.append(NSAttributedString(
-            string: "\n\nBuilt with Claude.",
+            string: "\n\nBuilt with Claude.\n© 2026 Aaron Meurer",
             attributes: [
                 .font: bodyFont,
                 .foregroundColor: NSColor.secondaryLabelColor
