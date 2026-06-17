@@ -1,5 +1,4 @@
 import SwiftUI
-import ServiceManagement
 
 struct MenuBarView: View {
     @Environment(ConfigManager.self) private var configManager
@@ -26,21 +25,6 @@ struct MenuBarView: View {
             openSettings()
             NSApp.activate()
         }
-
-        Toggle("Launch at Login", isOn: Binding(
-            get: { SMAppService.mainApp.status == .enabled },
-            set: { newValue in
-                do {
-                    if newValue {
-                        try SMAppService.mainApp.register()
-                    } else {
-                        try SMAppService.mainApp.unregister()
-                    }
-                } catch {
-                    // Login item registration may fail when not running from .app bundle
-                }
-            }
-        ))
 
         Button("Check for Updates...") {
             updaterManager.checkForUpdates()

@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import ServiceManagement
 
 struct SettingsView: View {
     @Environment(ConfigManager.self) private var configManager
@@ -107,6 +108,28 @@ struct SettingsView: View {
                 swipeIndicatorOpacity = 0
             }
         }
+
+        Divider()
+
+        HStack {
+            Toggle("Launch at Login", isOn: Binding(
+                get: { SMAppService.mainApp.status == .enabled },
+                set: { newValue in
+                    do {
+                        if newValue {
+                            try SMAppService.mainApp.register()
+                        } else {
+                            try SMAppService.mainApp.unregister()
+                        }
+                    } catch {
+                        // Login item registration may fail when not running from .app bundle
+                    }
+                }
+            ))
+            Spacer()
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 10)
 
         } // VStack
         .frame(minWidth: 550, minHeight: 350)
