@@ -2,6 +2,10 @@
 
 All notable changes to Swyper will be documented in this file.
 
+## [0.6.1] - 2026-06-17
+
+- Ignore three-finger swipes that occur during a four-finger gesture (e.g. switching spaces), so lifting one finger mid-swipe no longer triggers an unintended shortcut
+
 ## [0.6.0] - 2026-06-10
 
 - Make per-app mappings self-contained: once an app has its own mapping, only its shortcuts apply and blank directions no longer fall back to the default
