@@ -73,12 +73,25 @@ struct MenuBarView: View {
             ]
         )
 
-        let website = "https://github.com/asmeurer/swyper"
+        let website = "https://www.asmeurer.com/swyper/"
         credits.append(NSAttributedString(
             string: website,
             attributes: [
                 .font: bodyFont,
                 .link: URL(string: website) as Any
+            ]
+        ))
+
+        let repository = "https://github.com/asmeurer/swyper"
+        credits.append(NSAttributedString(
+            string: "\n",
+            attributes: [.font: bodyFont]
+        ))
+        credits.append(NSAttributedString(
+            string: repository,
+            attributes: [
+                .font: bodyFont,
+                .link: URL(string: repository) as Any
             ]
         ))
 
