@@ -3,18 +3,17 @@
   <channel>
     <title>Swyper Updates</title>
     <item>
-      <title>Version 0.6.0</title>
-      <pubDate>Wed, 10 Jun 2026 21:47:21 +0000</pubDate>
-      <sparkle:version>0.6.0</sparkle:version>
-      <sparkle:shortVersionString>0.6.0</sparkle:shortVersionString>
+      <title>Version 0.6.1</title>
+      <pubDate>Wed, 17 Jun 2026 06:44:12 +0000</pubDate>
+      <sparkle:version>0.6.1</sparkle:version>
+      <sparkle:shortVersionString>0.6.1</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
       <description><![CDATA[<ul>
-<li>Make per-app mappings self-contained: once an app has its own mapping, only its shortcuts apply and blank directions no longer fall back to the default</li>
-<li>Seed new app mappings with a copy of the default shortcuts as a starting point</li>
+<li>Ignore three-finger swipes that occur during a four-finger gesture (e.g. switching spaces), so lifting one finger mid-swipe no longer triggers an unintended shortcut</li>
 </ul>]]></description>
-      <enclosure url="https://github.com/asmeurer/swyper/releases/download/v0.6.0/Swyper.zip"
-                 sparkle:edSignature="oCsNmeEsDacohJ36T4UOuqe+2SK6zZ0g4VNI27VXZJgD34Pac5tQdNAi4RDIKSocNElFt9XXdXLCEbaAyBkHDg=="
-                 length="1289525"
+      <enclosure url="https://github.com/asmeurer/swyper/releases/download/v0.6.1/Swyper.zip"
+                 sparkle:edSignature="AWj2BMSEVON5OVl7qrwUFtq2ANFPPnPiQsI2eMkY4xr919LP78bV7GfU+6Y+QRqwOv+YppwR1EHHdn6jFvcCCw=="
+                 length="1289916"
                  type="application/octet-stream" />
     </item>
   </channel>
