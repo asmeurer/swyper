@@ -80,6 +80,28 @@ swift test       # Run the test suite
 
 Tests cover model logic, config serialization/backward-compatibility, and the swipe detection algorithm. Tests run automatically on CI via GitHub Actions on pushes and pull requests to `main`.
 
+## Troubleshooting
+
+If a three-finger swipe doesn't register, Swyper's diagnostic log shows what the gesture detector saw. Watch it live while reproducing the problem:
+
+```bash
+log stream --predicate 'subsystem == "com.swyper.app"'
+```
+
+Or, after noting the time a swipe failed, pull recent history:
+
+```bash
+log show --last 10m --predicate 'subsystem == "com.swyper.app"' --info
+```
+
+Messages to look for:
+
+- `Three-finger tracking started` — the detector saw three fingertips. If this never appears, three contacts were never registered simultaneously (or detection is suppressed, below).
+- `Three-finger gesture ended without a swipe: … per-finger travel …` — tracking started but no swipe fired; the per-finger travel shows whether fingers moved too little, or one finger lagged behind the others, or a finger dropped out mid-swipe (contact count changed).
+- `… fingertip contacts — three-finger detection suppressed until all fingers lift` — a fourth contact (often a resting thumb or palm) was counted as a fingertip; nothing registers until every contact lifts.
+- `Contacts: … palm-sized excluded (sizes: …)` — a contact was excluded as a palm. If a real fingertip pressed flat reads at or above size 0.9, it is dropped and the finger count falls below three.
+- `Swipe … ignored: no shortcut configured for …` — the swipe was detected, but the frontmost app has no mapping for that direction.
+
 ## How it works
 
 Swyper uses the private `MultitouchSupport.framework` (loaded dynamically via `dlopen`) to receive raw multitouch data from the trackpad. It tracks active touch points and detects when three fingers move together past a displacement threshold, then simulates the configured keyboard shortcut via the `CGEvent` API.

@@ -263,6 +263,80 @@ struct FourFingerSuppressionTests {
     }
 }
 
+@Suite("Frame Diagnostics")
+struct FrameDiagnosticsTests {
+
+    private func touches(_ positions: [(Float, Float)]) -> [TouchInfo] {
+        positions.enumerated().map { index, pos in
+            TouchInfo(id: Int32(index), state: 3, x: pos.0, y: pos.1)
+        }
+    }
+
+    @Test("Tracking start is reported once per gesture")
+    func trackingStartedOnce() {
+        var state = SwipeState()
+        let first = updateSwipeState(state: &state, touches: touches([(0.3, 0.5), (0.3, 0.5), (0.3, 0.5)]))
+        #expect(first.trackingStarted)
+        let second = updateSwipeState(state: &state, touches: touches([(0.32, 0.5), (0.32, 0.5), (0.32, 0.5)]))
+        #expect(!second.trackingStarted)
+    }
+
+    @Test("Gesture cut short mid-swipe reports accumulated travel")
+    func abandonedGestureReportsDeltas() throws {
+        var state = SwipeState()
+        // Three fingers move right, but not far enough to fire, then one lifts.
+        _ = updateSwipeState(state: &state, touches: touches([(0.3, 0.5), (0.3, 0.5), (0.3, 0.5)]))
+        _ = updateSwipeState(state: &state, touches: touches([(0.35, 0.5), (0.35, 0.5), (0.35, 0.5)]))
+        let outcome = updateSwipeState(state: &state, touches: touches([(0.35, 0.5), (0.35, 0.5)]))
+
+        #expect(outcome.abandonedContactCount == 2)
+        let deltas = try #require(outcome.abandonedDeltas)
+        #expect(deltas.count == 3)
+        #expect(deltas.allSatisfy { abs($0.dx - 0.05) < 0.001 && abs($0.dy) < 0.001 })
+    }
+
+    @Test("Release after a fired swipe is not reported as abandoned")
+    func firedGestureNotAbandoned() {
+        var state = SwipeState()
+        _ = updateSwipeState(state: &state, touches: touches([(0.3, 0.5), (0.3, 0.5), (0.3, 0.5)]))
+        let fired = updateSwipeState(state: &state, touches: touches([(0.6, 0.5), (0.6, 0.5), (0.6, 0.5)]))
+        #expect(fired.firedDirection == .right)
+
+        let released = updateSwipeState(state: &state, touches: [])
+        #expect(released.abandonedDeltas == nil)
+        #expect(released.abandonedContactCount == nil)
+    }
+
+    @Test("Suppression arm and clear are reported on transitions only")
+    func suppressionTransitions() {
+        var state = SwipeState()
+        let four = touches([(0.2, 0.5), (0.3, 0.5), (0.4, 0.5), (0.5, 0.5)])
+        let first = updateSwipeState(state: &state, touches: four)
+        #expect(first.suppressionArmed)
+        let second = updateSwipeState(state: &state, touches: four)
+        #expect(!second.suppressionArmed)
+
+        let released = updateSwipeState(state: &state, touches: [])
+        #expect(released.suppressionCleared)
+        let stillReleased = updateSwipeState(state: &state, touches: [])
+        #expect(!stillReleased.suppressionCleared)
+    }
+
+    @Test("Four-finger frame during tracking reports the abandoned gesture")
+    func fourFingersAbandonsTracking() {
+        var state = SwipeState()
+        _ = updateSwipeState(state: &state, touches: touches([(0.3, 0.5), (0.3, 0.5), (0.3, 0.5)]))
+        _ = updateSwipeState(state: &state, touches: touches([(0.35, 0.5), (0.35, 0.5), (0.35, 0.5)]))
+        let outcome = updateSwipeState(
+            state: &state,
+            touches: touches([(0.35, 0.5), (0.35, 0.5), (0.35, 0.5), (0.5, 0.5)])
+        )
+        #expect(outcome.suppressionArmed)
+        #expect(outcome.abandonedContactCount == 4)
+        #expect(outcome.abandonedDeltas?.count == 3)
+    }
+}
+
 @Suite("Palm Contact Classification")
 struct PalmContactTests {
     // Observed sizes from raw touch-record dumps: fingertips read < ~0.8,

@@ -76,6 +76,13 @@ struct TouchInfo: Sendable {
     let y: Float
 }
 
+/// Per-finger travel accumulated during a gesture, reported for diagnostics when
+/// the gesture ends without firing.
+struct FingerDelta: Equatable, Sendable {
+    var dx: Float
+    var dy: Float
+}
+
 /// Outcome of processing one multitouch frame.
 struct FrameOutcome: Equatable {
     /// A genuine (non-suppressed) three-finger frame occurred this update. Callers
@@ -83,6 +90,18 @@ struct FrameOutcome: Equatable {
     var isThreeFingerFrame: Bool = false
     /// A swipe was detected this frame and should be fired.
     var firedDirection: SwipeDirection?
+    /// Three-finger tracking began this frame.
+    var trackingStarted: Bool = false
+    /// Four or more fingertip contacts appeared this frame, arming suppression.
+    var suppressionArmed: Bool = false
+    /// All contacts lifted this frame, clearing four-finger suppression.
+    var suppressionCleared: Bool = false
+    /// Set when an in-progress three-finger gesture ended without firing: the
+    /// per-finger travel accumulated before the gesture was abandoned.
+    var abandonedDeltas: [FingerDelta]?
+    /// The fingertip contact count that ended the abandoned gesture
+    /// (see `abandonedDeltas`).
+    var abandonedContactCount: Int?
 }
 
 // MARK: - File-scope C callback
@@ -165,32 +184,51 @@ func updateThreeFingerTracking(state: inout SwipeState, touches: [TouchInfo]) ->
     return nil
 }
 
+/// Clears in-progress tracking. When a live (unfired) gesture is being cut short,
+/// records its per-finger travel in the outcome so the caller can log why it ended.
+private func abandonTracking(_ state: inout SwipeState, contactCount: Int, outcome: inout FrameOutcome) {
+    if state.isTracking && !state.hasFired && !state.fingers.isEmpty {
+        outcome.abandonedDeltas = state.fingers.values.map {
+            FingerDelta(dx: $0.currentX - $0.startX, dy: $0.currentY - $0.startY)
+        }
+        outcome.abandonedContactCount = contactCount
+    }
+    resetSwipeTracking(&state)
+}
+
 /// Routes a single frame of fingertip contacts through the swipe state machine,
 /// applying four-finger suppression. Returns what (if anything) the frame produced.
 func updateSwipeState(state: inout SwipeState, touches: [TouchInfo]) -> FrameOutcome {
     let count = touches.count
+    var outcome = FrameOutcome()
 
     if count >= 4 {
         // A four-or-more-finger gesture (e.g. switching spaces). Arm suppression
         // until the trackpad is fully released so lifting one finger mid-gesture
         // doesn't fall through to three-finger detection.
-        state.suppressedUntilRelease = true
-        resetSwipeTracking(&state)
-        return FrameOutcome()
+        if !state.suppressedUntilRelease {
+            state.suppressedUntilRelease = true
+            outcome.suppressionArmed = true
+        }
+        abandonTracking(&state, contactCount: count, outcome: &outcome)
+        return outcome
     }
 
     if count == 3 && !state.suppressedUntilRelease {
-        let direction = updateThreeFingerTracking(state: &state, touches: touches)
-        return FrameOutcome(isThreeFingerFrame: true, firedDirection: direction)
+        outcome.isThreeFingerFrame = true
+        outcome.trackingStarted = !state.isTracking
+        outcome.firedDirection = updateThreeFingerTracking(state: &state, touches: touches)
+        return outcome
     }
 
     // Fewer than three contacts, or a suppressed three-finger frame. Reset
     // tracking, and once every contact has lifted, re-arm for the next gesture.
-    resetSwipeTracking(&state)
-    if count == 0 {
+    abandonTracking(&state, contactCount: count, outcome: &outcome)
+    if count == 0 && state.suppressedUntilRelease {
         state.suppressedUntilRelease = false
+        outcome.suppressionCleared = true
     }
-    return FrameOutcome()
+    return outcome
 }
 
 // MARK: - MultitouchManager
@@ -201,7 +239,13 @@ final class MultitouchManager: @unchecked Sendable {
     /// multitouch background thread — handlers must be thread-safe and cheap.
     var onThreeFingerFrame: (@Sendable () -> Void)?
 
+    private struct ContactCounts: Equatable {
+        var fingertips = 0
+        var excluded = 0
+    }
+
     private let lock = OSAllocatedUnfairLock(initialState: SwipeState())
+    private let lastContactCounts = OSAllocatedUnfairLock(initialState: ContactCounts())
     private let logger = Logger(subsystem: "com.swyper.app", category: "multitouch")
 
     // Dynamic function pointers
@@ -277,6 +321,7 @@ final class MultitouchManager: @unchecked Sendable {
     // Called from the MultitouchSupport background thread
     func processFrame(data: UnsafeMutableRawPointer, fingerCount: Int) {
         var touches: [TouchInfo] = []
+        var excludedSizes: [Float] = []
         let rawPtr = UnsafeRawPointer(data)
 
         for i in 0..<max(0, fingerCount) {
@@ -290,7 +335,10 @@ final class MultitouchManager: @unchecked Sendable {
                 let size = base.load(fromByteOffset: kOffsetSize, as: Float.self)
                 // Skip palm/thumb-base contacts so a resting palm doesn't push
                 // the contact count past three and suppress the gesture.
-                guard isFingerContact(size: size) else { continue }
+                guard isFingerContact(size: size) else {
+                    excludedSizes.append(size)
+                    continue
+                }
                 let x = base.load(fromByteOffset: kOffsetNormX, as: Float.self)
                 let y = base.load(fromByteOffset: kOffsetNormY, as: Float.self)
                 touches.append(TouchInfo(id: pathIndex, state: state, x: x, y: y))
@@ -298,16 +346,68 @@ final class MultitouchManager: @unchecked Sendable {
         }
 
         let activeTouches = touches
-        let outcome = lock.withLock { state in
-            updateSwipeState(state: &state, touches: activeTouches)
+        let (outcome, threshold) = lock.withLock { state -> (FrameOutcome, Float) in
+            (updateSwipeState(state: &state, touches: activeTouches), state.swipeThreshold)
         }
+
+        logDiagnostics(
+            outcome: outcome,
+            threshold: threshold,
+            fingertipCount: activeTouches.count,
+            excludedSizes: excludedSizes
+        )
 
         if outcome.isThreeFingerFrame {
             onThreeFingerFrame?()
         }
         if let direction = outcome.firedDirection {
-            logger.info("Swipe detected: \(direction.rawValue)")
+            logger.log("Swipe detected: \(direction.rawValue, privacy: .public)")
             fireSwipe(direction)
+        }
+    }
+
+    /// Logs why a gesture did (or didn't) make progress. Every message here fires
+    /// on a state transition rather than per frame, so the volume stays low, and
+    /// uses the default log level so `log show` can retrieve it after the fact.
+    private func logDiagnostics(
+        outcome: FrameOutcome,
+        threshold: Float,
+        fingertipCount: Int,
+        excludedSizes: [Float]
+    ) {
+        let counts = ContactCounts(fingertips: fingertipCount, excluded: excludedSizes.count)
+        let countsChanged = lastContactCounts.withLock { last in
+            guard last != counts else { return false }
+            last = counts
+            return true
+        }
+        if countsChanged && !excludedSizes.isEmpty {
+            let sizes = excludedSizes.map { String(format: "%.2f", $0) }.joined(separator: ", ")
+            logger.log("""
+                Contacts: \(counts.fingertips) fingertip(s), \
+                \(counts.excluded) palm-sized excluded (sizes: \(sizes, privacy: .public))
+                """)
+        }
+
+        if outcome.suppressionArmed {
+            logger.log("\(fingertipCount) fingertip contacts — three-finger detection suppressed until all fingers lift")
+        }
+        if outcome.suppressionCleared {
+            logger.log("All contacts lifted — three-finger detection re-armed")
+        }
+        if outcome.trackingStarted {
+            logger.log("Three-finger tracking started")
+        }
+        if let deltas = outcome.abandonedDeltas {
+            let travel = deltas
+                .map { String(format: "(%+.3f, %+.3f)", $0.dx, $0.dy) }
+                .joined(separator: " ")
+            let thresholdText = String(format: "%.3f", threshold)
+            logger.log("""
+                Three-finger gesture ended without a swipe: contact count changed to \
+                \(outcome.abandonedContactCount ?? -1), per-finger travel \
+                \(travel, privacy: .public), threshold \(thresholdText, privacy: .public)
+                """)
         }
     }
 
