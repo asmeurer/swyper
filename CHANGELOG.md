@@ -2,6 +2,10 @@
 
 All notable changes to Swyper will be documented in this file.
 
+## [0.7.1] - 2026-07-05
+
+- Add diagnostic logging for missed three-finger swipes: when a swipe doesn't register, `log show --predicate 'subsystem == "com.swyper.app"'` now shows why (gesture abandoned with per-finger travel, four-finger suppression, palm-size exclusion, or no shortcut configured). See the new Troubleshooting section in the README.
+
 ## [0.7.0] - 2026-06-17
 
 - Add an "About Swyper" menu item with website and repository links
