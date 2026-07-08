@@ -46,6 +46,31 @@ func isFingerContact(size: Float, threshold: Float = palmSizeThreshold) -> Bool 
     size < threshold
 }
 
+/// Makes palm classification sticky by tracking each contact's maximum size over
+/// its lifetime. Reported sizes oscillate frame to frame — a resting thumb reads
+/// anywhere from ~0.88 to 1.0 — so classifying each frame's raw size in isolation
+/// lets a contact sitting near the threshold flap between palm and fingertip,
+/// momentarily pushing the fingertip count to four and suppressing an in-progress
+/// swipe. Fingertips never read above ~0.8, so judging by the running maximum
+/// cannot get a real finger stuck excluded.
+struct PalmFilter {
+    private var maxSizes: [Int32: Float] = [:]
+
+    /// Records the contact's size this frame and returns its lifetime maximum,
+    /// which is what should be classified.
+    mutating func effectiveSize(id: Int32, size: Float) -> Float {
+        let maxSize = max(maxSizes[id] ?? 0, size)
+        maxSizes[id] = maxSize
+        return maxSize
+    }
+
+    /// Drops state for contacts no longer on the trackpad, so a finger that lifts
+    /// and lands again starts with a fresh classification.
+    mutating func retainOnly(ids: Set<Int32>) {
+        maxSizes = maxSizes.filter { ids.contains($0.key) }
+    }
+}
+
 // MARK: - Swipe tracking state
 
 struct FingerTrack: Sendable {
@@ -55,11 +80,21 @@ struct FingerTrack: Sendable {
     var currentY: Float
 }
 
+/// Four-or-more-fingertip frames must persist for this many consecutive frames
+/// before suppression arms. Frames arrive at ~90–125 Hz, so this is roughly 25 ms —
+/// long enough to absorb a landing thumb being misread as a fingertip for a frame
+/// or two, short enough that a real four-finger gesture still suppresses well
+/// before three-finger travel could reach the swipe threshold.
+let kFourFingerDebounceFrames = 3
+
 struct SwipeState {
     var isTracking: Bool = false
     var hasFired: Bool = false
     var fingers: [Int32: FingerTrack] = [:]
     var swipeThreshold: Float = 0.08
+    /// Consecutive frames with four or more fingertip contacts (see
+    /// `kFourFingerDebounceFrames`).
+    var consecutiveFourFingerFrames: Int = 0
     /// Set once four or more fingertips are seen in a frame, and held until every
     /// contact lifts. While set, three-finger frames are ignored — this prevents a
     /// four-finger swipe (e.g. switching spaces), where a finger is lifted mid-swipe
@@ -205,14 +240,20 @@ func updateSwipeState(state: inout SwipeState, touches: [TouchInfo]) -> FrameOut
     if count >= 4 {
         // A four-or-more-finger gesture (e.g. switching spaces). Arm suppression
         // until the trackpad is fully released so lifting one finger mid-gesture
-        // doesn't fall through to three-finger detection.
-        if !state.suppressedUntilRelease {
+        // doesn't fall through to three-finger detection. The count must persist
+        // for a few frames first: a transient fourth contact (a landing thumb
+        // misread as a fingertip for a frame or two) leaves in-progress tracking
+        // untouched, so the swipe can continue once the count returns to three.
+        state.consecutiveFourFingerFrames += 1
+        if !state.suppressedUntilRelease
+            && state.consecutiveFourFingerFrames >= kFourFingerDebounceFrames {
             state.suppressedUntilRelease = true
             outcome.suppressionArmed = true
+            abandonTracking(&state, contactCount: count, outcome: &outcome)
         }
-        abandonTracking(&state, contactCount: count, outcome: &outcome)
         return outcome
     }
+    state.consecutiveFourFingerFrames = 0
 
     if count == 3 && !state.suppressedUntilRelease {
         outcome.isThreeFingerFrame = true
@@ -245,6 +286,7 @@ final class MultitouchManager: @unchecked Sendable {
     }
 
     private let lock = OSAllocatedUnfairLock(initialState: SwipeState())
+    private let palmFilter = OSAllocatedUnfairLock(initialState: PalmFilter())
     private let lastContactCounts = OSAllocatedUnfairLock(initialState: ContactCounts())
     private let logger = Logger(subsystem: "com.swyper.app", category: "multitouch")
 
@@ -320,8 +362,7 @@ final class MultitouchManager: @unchecked Sendable {
 
     // Called from the MultitouchSupport background thread
     func processFrame(data: UnsafeMutableRawPointer, fingerCount: Int) {
-        var touches: [TouchInfo] = []
-        var excludedSizes: [Float] = []
+        var contacts: [(id: Int32, state: Int32, x: Float, y: Float, size: Float)] = []
         let rawPtr = UnsafeRawPointer(data)
 
         for i in 0..<max(0, fingerCount) {
@@ -332,20 +373,35 @@ final class MultitouchManager: @unchecked Sendable {
             // Accept any finger that is actively present on the trackpad.
             // macOS 26 uses state 1=start, 3=touching; older versions used 4+.
             if state > 0 {
-                let size = base.load(fromByteOffset: kOffsetSize, as: Float.self)
-                // Skip palm/thumb-base contacts so a resting palm doesn't push
-                // the contact count past three and suppress the gesture.
-                guard isFingerContact(size: size) else {
-                    excludedSizes.append(size)
-                    continue
-                }
-                let x = base.load(fromByteOffset: kOffsetNormX, as: Float.self)
-                let y = base.load(fromByteOffset: kOffsetNormY, as: Float.self)
-                touches.append(TouchInfo(id: pathIndex, state: state, x: x, y: y))
+                contacts.append((
+                    id: pathIndex,
+                    state: state,
+                    x: base.load(fromByteOffset: kOffsetNormX, as: Float.self),
+                    y: base.load(fromByteOffset: kOffsetNormY, as: Float.self),
+                    size: base.load(fromByteOffset: kOffsetSize, as: Float.self)
+                ))
             }
         }
 
-        let activeTouches = touches
+        // Skip palm/thumb-base contacts so a resting palm doesn't push the
+        // contact count past three and suppress the gesture. Classification is
+        // sticky per contact (see PalmFilter).
+        let frameContacts = contacts
+        let presentIDs = Set(frameContacts.map(\.id))
+        let (activeTouches, excludedSizes) = palmFilter.withLock { filter -> ([TouchInfo], [Float]) in
+            filter.retainOnly(ids: presentIDs)
+            var touches: [TouchInfo] = []
+            var excluded: [Float] = []
+            for contact in frameContacts {
+                let size = filter.effectiveSize(id: contact.id, size: contact.size)
+                if isFingerContact(size: size) {
+                    touches.append(TouchInfo(id: contact.id, state: contact.state, x: contact.x, y: contact.y))
+                } else {
+                    excluded.append(size)
+                }
+            }
+            return (touches, excluded)
+        }
         let (outcome, threshold) = lock.withLock { state -> (FrameOutcome, Float) in
             (updateSwipeState(state: &state, touches: activeTouches), state.swipeThreshold)
         }
