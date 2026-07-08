@@ -2,6 +2,10 @@
 
 All notable changes to Swyper will be documented in this file.
 
+## [0.7.2] - 2026-07-08
+
+- Fix three-finger swipes intermittently failing when a resting thumb or palm sits near the palm-size threshold: palm classification is now sticky per contact, and four-finger suppression requires the contact count to persist for a few frames instead of arming on a single frame
+
 ## [0.7.1] - 2026-07-05
 
 - Add diagnostic logging for missed three-finger swipes: when a swipe doesn't register, `log show --predicate 'subsystem == "com.swyper.app"'` now shows why (gesture abandoned with per-finger travel, four-finger suppression, palm-size exclusion, or no shortcut configured). See the new Troubleshooting section in the README.
