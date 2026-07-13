@@ -3,17 +3,17 @@
   <channel>
     <title>Swyper Updates</title>
     <item>
-      <title>Version 0.7.2</title>
-      <pubDate>Wed, 08 Jul 2026 20:11:28 +0000</pubDate>
-      <sparkle:version>0.7.2</sparkle:version>
-      <sparkle:shortVersionString>0.7.2</sparkle:shortVersionString>
+      <title>Version 0.7.3</title>
+      <pubDate>Mon, 13 Jul 2026 22:59:17 +0000</pubDate>
+      <sparkle:version>0.7.3</sparkle:version>
+      <sparkle:shortVersionString>0.7.3</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
       <description><![CDATA[<ul>
-<li>Fix three-finger swipes intermittently failing when a resting thumb or palm sits near the palm-size threshold: palm classification is now sticky per contact, and four-finger suppression requires the contact count to persist for a few frames instead of arming on a single frame</li>
+<li>Fix three-finger swipes still failing with a resting thumb whose contact size reads like a fingertip: four-finger suppression now arms only when four or more contacts actually move together (a real system four-finger gesture), so stationary extra contacts no longer block swipes</li>
 </ul>]]></description>
-      <enclosure url="https://github.com/asmeurer/swyper/releases/download/v0.7.2/Swyper.zip"
-                 sparkle:edSignature="G5p5v1CMEVzQ0gEMz6Kop6co4MdYQFA6yMc8MPJVTAbSnBfVNv//56NrY8rzruZSE16soIGazDQ8zp0fEfJYCA=="
-                 length="1302112"
+      <enclosure url="https://github.com/asmeurer/swyper/releases/download/v0.7.3/Swyper.zip"
+                 sparkle:edSignature="QlA2rs0g3Bikdz33cMz2x3tY1x62NlvtJOjkHrIsGyhY7ZpOVMX++Vafm9VvRd4Tj5RZFWLp7ozMw4Mjrl5LDw=="
+                 length="1303555"
                  type="application/octet-stream" />
     </item>
   </channel>
