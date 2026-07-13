@@ -3,17 +3,17 @@
   <channel>
     <title>Swyper Updates</title>
     <item>
-      <title>Version 0.7.1</title>
-      <pubDate>Mon, 06 Jul 2026 01:43:10 +0000</pubDate>
-      <sparkle:version>0.7.1</sparkle:version>
-      <sparkle:shortVersionString>0.7.1</sparkle:shortVersionString>
+      <title>Version 0.7.2</title>
+      <pubDate>Wed, 08 Jul 2026 20:11:28 +0000</pubDate>
+      <sparkle:version>0.7.2</sparkle:version>
+      <sparkle:shortVersionString>0.7.2</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
       <description><![CDATA[<ul>
-<li>Add diagnostic logging for missed three-finger swipes: when a swipe doesn&#x27;t register, `log show --predicate &#x27;subsystem == &quot;com.swyper.app&quot;&#x27;` now shows why (gesture abandoned with per-finger travel, four-finger suppression, palm-size exclusion, or no shortcut configured). See the new Troubleshooting section in the README.</li>
+<li>Fix three-finger swipes intermittently failing when a resting thumb or palm sits near the palm-size threshold: palm classification is now sticky per contact, and four-finger suppression requires the contact count to persist for a few frames instead of arming on a single frame</li>
 </ul>]]></description>
-      <enclosure url="https://github.com/asmeurer/swyper/releases/download/v0.7.1/Swyper.zip"
-                 sparkle:edSignature="1W0b13DYtP6mZ/rdTZWAXiJbM3HGdctRbHTTpwmKexVF46+Ec1lzuuXfwUp+Mg89jhFWHsgy4ov4huE6c70JCg=="
-                 length="1298152"
+      <enclosure url="https://github.com/asmeurer/swyper/releases/download/v0.7.2/Swyper.zip"
+                 sparkle:edSignature="G5p5v1CMEVzQ0gEMz6Kop6co4MdYQFA6yMc8MPJVTAbSnBfVNv//56NrY8rzruZSE16soIGazDQ8zp0fEfJYCA=="
+                 length="1302112"
                  type="application/octet-stream" />
     </item>
   </channel>
