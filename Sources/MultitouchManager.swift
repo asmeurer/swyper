@@ -80,27 +80,40 @@ struct FingerTrack: Sendable {
     var currentY: Float
 }
 
-/// Four-or-more-fingertip frames must persist for this many consecutive frames
-/// before suppression arms. Frames arrive at ~90–125 Hz, so this is roughly 25 ms —
-/// long enough to absorb a landing thumb being misread as a fingertip for a frame
-/// or two, short enough that a real four-finger gesture still suppresses well
-/// before three-finger travel could reach the swipe threshold.
-let kFourFingerDebounceFrames = 3
+/// A tracked contact whose total travel stays at or below this is treated as
+/// resting rather than participating in a gesture. A thumb planted next to three
+/// swiping fingers often reads as a fingertip-sized fourth contact but barely
+/// moves, while every finger in a real four-finger gesture travels well past
+/// this within a few frames. Capped at half the swipe threshold so a contact
+/// counted as resting can never also satisfy the per-finger swipe minimum.
+func restingTravelMax(threshold: Float) -> Float {
+    min(0.01, threshold / 2)
+}
+
+/// IDs of tracked contacts that have moved beyond the resting-travel cap.
+func movingContactIDs(fingers: [Int32: FingerTrack], threshold: Float) -> Set<Int32> {
+    let cap = restingTravelMax(threshold: threshold)
+    var ids: Set<Int32> = []
+    for (id, track) in fingers
+    where max(abs(track.currentX - track.startX), abs(track.currentY - track.startY)) > cap {
+        ids.insert(id)
+    }
+    return ids
+}
 
 struct SwipeState {
     var isTracking: Bool = false
     var hasFired: Bool = false
     var fingers: [Int32: FingerTrack] = [:]
     var swipeThreshold: Float = 0.08
-    /// Consecutive frames with four or more fingertip contacts (see
-    /// `kFourFingerDebounceFrames`).
-    var consecutiveFourFingerFrames: Int = 0
-    /// Set once four or more fingertips are seen in a frame, and held until every
-    /// contact lifts. While set, three-finger frames are ignored — this prevents a
-    /// four-finger swipe (e.g. switching spaces), where a finger is lifted mid-swipe
-    /// so the count momentarily drops to three, from registering as a three-finger
-    /// swipe. The system four-finger gesture keeps running as long as one finger
-    /// stays down, so we only re-arm once the trackpad is fully released.
+    /// Set once four or more contacts are seen moving together, and held until
+    /// every contact lifts. While set, three-finger frames are ignored — this
+    /// prevents a four-finger swipe (e.g. switching spaces), where a finger is
+    /// lifted mid-swipe so the count momentarily drops to three, from registering
+    /// as a three-finger swipe. The system four-finger gesture keeps running as
+    /// long as one finger stays down, so we only re-arm once the trackpad is
+    /// fully released. Contacts that stay at rest (a planted thumb) never arm
+    /// this, no matter how long they sit on the trackpad.
     var suppressedUntilRelease: Bool = false
 }
 
@@ -120,14 +133,14 @@ struct FingerDelta: Equatable, Sendable {
 
 /// Outcome of processing one multitouch frame.
 struct FrameOutcome: Equatable {
-    /// A genuine (non-suppressed) three-finger frame occurred this update. Callers
-    /// use this to drive scroll suppression.
+    /// A genuine (non-suppressed) frame with three-finger gesture tracking in
+    /// progress occurred this update. Callers use this to drive scroll suppression.
     var isThreeFingerFrame: Bool = false
     /// A swipe was detected this frame and should be fired.
     var firedDirection: SwipeDirection?
-    /// Three-finger tracking began this frame.
+    /// Gesture tracking began this frame.
     var trackingStarted: Bool = false
-    /// Four or more fingertip contacts appeared this frame, arming suppression.
+    /// Four or more contacts were seen moving together this frame, arming suppression.
     var suppressionArmed: Bool = false
     /// All contacts lifted this frame, clearing four-finger suppression.
     var suppressionCleared: Bool = false
@@ -185,38 +198,29 @@ func resetSwipeTracking(_ state: inout SwipeState) {
     state.fingers.removeAll()
 }
 
-/// Advances three-finger tracking with the latest contacts, returning a swipe
-/// direction if one is detected this frame.
-func updateThreeFingerTracking(state: inout SwipeState, touches: [TouchInfo]) -> SwipeDirection? {
+/// Advances gesture tracking with the latest contacts: starts tracking if needed,
+/// updates current positions, adds newly landed contacts with their landing
+/// position as the start, and drops contacts that have lifted.
+func updateGestureTracking(state: inout SwipeState, touches: [TouchInfo]) {
     if !state.isTracking {
         state.isTracking = true
         state.hasFired = false
         state.fingers.removeAll()
-        for touch in touches {
+    }
+    let presentIDs = Set(touches.map(\.id))
+    state.fingers = state.fingers.filter { presentIDs.contains($0.key) }
+    for touch in touches {
+        if var track = state.fingers[touch.id] {
+            track.currentX = touch.x
+            track.currentY = touch.y
+            state.fingers[touch.id] = track
+        } else {
             state.fingers[touch.id] = FingerTrack(
                 startX: touch.x, startY: touch.y,
                 currentX: touch.x, currentY: touch.y
             )
         }
-        return nil
     }
-
-    guard !state.hasFired else { return nil }
-
-    for touch in touches where state.fingers[touch.id] != nil {
-        state.fingers[touch.id] = FingerTrack(
-            startX: state.fingers[touch.id]?.startX ?? touch.x,
-            startY: state.fingers[touch.id]?.startY ?? touch.y,
-            currentX: touch.x,
-            currentY: touch.y
-        )
-    }
-
-    if let direction = detectSwipe(fingers: state.fingers, threshold: state.swipeThreshold) {
-        state.hasFired = true
-        return direction
-    }
-    return nil
 }
 
 /// Clears in-progress tracking. When a live (unfired) gesture is being cut short,
@@ -231,39 +235,50 @@ private func abandonTracking(_ state: inout SwipeState, contactCount: Int, outco
     resetSwipeTracking(&state)
 }
 
-/// Routes a single frame of fingertip contacts through the swipe state machine,
-/// applying four-finger suppression. Returns what (if anything) the frame produced.
+/// Routes a single frame of fingertip contacts through the swipe state machine.
+/// Returns what (if anything) the frame produced.
+///
+/// Contacts beyond three are tolerated as long as they rest in place — a thumb
+/// planted next to three swiping fingers often reads as a fingertip-sized fourth
+/// contact, and its size cannot always be told apart from a finger's. What can:
+/// the thumb doesn't move. Suppression arms only when four or more contacts move
+/// together, which indicates a system four-finger gesture (e.g. switching
+/// spaces); a swipe fires when exactly three contacts move while any extras
+/// stay at rest.
 func updateSwipeState(state: inout SwipeState, touches: [TouchInfo]) -> FrameOutcome {
     let count = touches.count
     var outcome = FrameOutcome()
 
-    if count >= 4 {
-        // A four-or-more-finger gesture (e.g. switching spaces). Arm suppression
-        // until the trackpad is fully released so lifting one finger mid-gesture
-        // doesn't fall through to three-finger detection. The count must persist
-        // for a few frames first: a transient fourth contact (a landing thumb
-        // misread as a fingertip for a frame or two) leaves in-progress tracking
-        // untouched, so the swipe can continue once the count returns to three.
-        state.consecutiveFourFingerFrames += 1
-        if !state.suppressedUntilRelease
-            && state.consecutiveFourFingerFrames >= kFourFingerDebounceFrames {
+    if count >= 3 && !state.suppressedUntilRelease {
+        outcome.trackingStarted = !state.isTracking
+        updateGestureTracking(state: &state, touches: touches)
+
+        let movingIDs = movingContactIDs(fingers: state.fingers, threshold: state.swipeThreshold)
+        if movingIDs.count >= 4 {
             state.suppressedUntilRelease = true
             outcome.suppressionArmed = true
             abandonTracking(&state, contactCount: count, outcome: &outcome)
+            return outcome
+        }
+
+        outcome.isThreeFingerFrame = true
+        if !state.hasFired {
+            // With exactly three contacts down, judge all of them (preserving the
+            // stationary-contact rejection in detectSwipe). With extras resting,
+            // judge just the moving three.
+            let candidates = count == 3
+                ? state.fingers
+                : state.fingers.filter { movingIDs.contains($0.key) }
+            if let direction = detectSwipe(fingers: candidates, threshold: state.swipeThreshold) {
+                state.hasFired = true
+                outcome.firedDirection = direction
+            }
         }
         return outcome
     }
-    state.consecutiveFourFingerFrames = 0
 
-    if count == 3 && !state.suppressedUntilRelease {
-        outcome.isThreeFingerFrame = true
-        outcome.trackingStarted = !state.isTracking
-        outcome.firedDirection = updateThreeFingerTracking(state: &state, touches: touches)
-        return outcome
-    }
-
-    // Fewer than three contacts, or a suppressed three-finger frame. Reset
-    // tracking, and once every contact has lifted, re-arm for the next gesture.
+    // Fewer than three contacts, or a suppressed frame. Reset tracking, and once
+    // every contact has lifted, re-arm for the next gesture.
     abandonTracking(&state, contactCount: count, outcome: &outcome)
     if count == 0 && state.suppressedUntilRelease {
         state.suppressedUntilRelease = false
@@ -446,7 +461,10 @@ final class MultitouchManager: @unchecked Sendable {
         }
 
         if outcome.suppressionArmed {
-            logger.log("\(fingertipCount) fingertip contacts — three-finger detection suppressed until all fingers lift")
+            logger.log("""
+                Four or more contacts moving together (\(fingertipCount) down) — \
+                three-finger detection suppressed until all fingers lift
+                """)
         }
         if outcome.suppressionCleared {
             logger.log("All contacts lifted — three-finger detection re-armed")

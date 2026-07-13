@@ -98,7 +98,7 @@ Messages to look for:
 
 - `Three-finger tracking started` — the detector saw three fingertips. If this never appears, three contacts were never registered simultaneously (or detection is suppressed, below).
 - `Three-finger gesture ended without a swipe: … per-finger travel …` — tracking started but no swipe fired; the per-finger travel shows whether fingers moved too little, or one finger lagged behind the others, or a finger dropped out mid-swipe (contact count changed).
-- `… fingertip contacts — three-finger detection suppressed until all fingers lift` — a fourth contact (often a resting thumb or palm) was counted as a fingertip; nothing registers until every contact lifts.
+- `Four or more contacts moving together (… down) — three-finger detection suppressed until all fingers lift` — the frame looked like a system four-finger gesture (e.g. switching spaces); nothing registers until every contact lifts. A resting thumb or palm that stays put does not trigger this — only four contacts all in motion do.
 - `Contacts: … palm-sized excluded (sizes: …)` — a contact was excluded as a palm. If a real fingertip pressed flat reads at or above size 0.9, it is dropped and the finger count falls below three.
 - `Swipe … ignored: no shortcut configured for …` — the swipe was detected, but the frontmost app has no mapping for that direction.
 

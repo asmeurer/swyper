@@ -198,18 +198,21 @@ struct FourFingerSuppressionTests {
         return outcome
     }
 
-    /// A four-finger frame repeated enough times to pass the suppression debounce.
-    private func sustainedFour(_ positions: [(Float, Float)]) -> [[TouchInfo]] {
-        Array(repeating: touches(positions), count: kFourFingerDebounceFrames)
+    /// Frames of a four-finger gesture in motion: all four contacts sweep right,
+    /// past the resting-travel cap, which arms suppression.
+    private func fourMoving() -> [[TouchInfo]] {
+        [
+            touches([(0.2, 0.5), (0.3, 0.5), (0.4, 0.5), (0.5, 0.5)]),
+            touches([(0.25, 0.5), (0.35, 0.5), (0.45, 0.5), (0.55, 0.5)])
+        ]
     }
 
-    @Test("Four fingers dropping to three does not fire a swipe")
+    @Test("Four moving fingers dropping to three does not fire a swipe")
     func fourThenThreeSuppressed() {
         var state = SwipeState()
-        // Start with four fingers near the left, then lift one and keep swiping right.
-        let start: [(Float, Float)] = [(0.2, 0.5), (0.3, 0.5), (0.4, 0.5), (0.5, 0.5)]
+        // Four fingers sweep together, then one lifts and the rest keep swiping right.
         let threeMoved: [(Float, Float)] = [(0.5, 0.5), (0.6, 0.5), (0.7, 0.5)]
-        let outcome = run(&state, frames: sustainedFour(start) + [touches(threeMoved)])
+        let outcome = run(&state, frames: fourMoving() + [touches(threeMoved)])
         #expect(outcome.firedDirection == nil)
         #expect(outcome.isThreeFingerFrame == false)
         #expect(state.suppressedUntilRelease)
@@ -218,11 +221,11 @@ struct FourFingerSuppressionTests {
     @Test("Suppression persists across a three-finger swipe until release")
     func suppressionPersistsUntilRelease() {
         var state = SwipeState()
-        let four: [(Float, Float)] = [(0.2, 0.5), (0.3, 0.5), (0.4, 0.5), (0.5, 0.5)]
-        // Four fingers, then a full three-finger swipe to the right — still suppressed.
+        // A four-finger gesture, then a full three-finger swipe to the right —
+        // still suppressed.
         let threeStart: [(Float, Float)] = [(0.3, 0.5), (0.3, 0.5), (0.3, 0.5)]
         let threeEnd: [(Float, Float)] = [(0.6, 0.5), (0.6, 0.5), (0.6, 0.5)]
-        let outcome = run(&state, frames: sustainedFour(four) + [touches(threeStart), touches(threeEnd)])
+        let outcome = run(&state, frames: fourMoving() + [touches(threeStart), touches(threeEnd)])
         #expect(outcome.firedDirection == nil)
         #expect(state.suppressedUntilRelease)
     }
@@ -230,7 +233,7 @@ struct FourFingerSuppressionTests {
     @Test("Lifting all fingers re-arms three-finger detection")
     func releaseClearsSuppression() {
         var state = SwipeState()
-        run(&state, frames: sustainedFour([(0.2, 0.5), (0.3, 0.5), (0.4, 0.5), (0.5, 0.5)]) + [
+        run(&state, frames: fourMoving() + [
             []                                                          // all lifted
         ])
         #expect(state.suppressedUntilRelease == false)
@@ -259,7 +262,7 @@ struct FourFingerSuppressionTests {
     @Test("Dropping to two fingers does not clear suppression mid-gesture")
     func twoFingersKeepsSuppression() {
         var state = SwipeState()
-        run(&state, frames: sustainedFour([(0.2, 0.5), (0.3, 0.5), (0.4, 0.5), (0.5, 0.5)]) + [
+        run(&state, frames: fourMoving() + [
             touches([(0.5, 0.5), (0.6, 0.5)])                           // down to two
         ])
         #expect(state.suppressedUntilRelease)
@@ -268,8 +271,8 @@ struct FourFingerSuppressionTests {
     @Test("Transient four-finger frames do not arm suppression or kill tracking")
     func transientFourthContactTolerated() {
         var state = SwipeState()
-        // Three fingers start swiping right, a fourth contact appears for fewer
-        // frames than the debounce (a landing thumb misread as a fingertip), then
+        // Three fingers start swiping right, a stationary fourth contact appears
+        // for a couple of frames (a landing thumb misread as a fingertip), then
         // the swipe continues and completes.
         let outcome = run(&state, frames: [
             touches([(0.3, 0.5), (0.3, 0.5), (0.3, 0.5)]),
@@ -282,17 +285,50 @@ struct FourFingerSuppressionTests {
         #expect(outcome.firedDirection == .right)
     }
 
-    @Test("Four-finger frames during the debounce window do not fire swipes")
-    func noFireDuringDebounceWindow() {
+    @Test("Three fingers swiping past a resting thumb fires")
+    func restingThumbSwipeFires() {
+        var state = SwipeState()
+        // A fingertip-sized thumb contact rests near the bottom edge for the whole
+        // gesture while three fingers swipe right. The stationary extra contact
+        // must not suppress the swipe.
+        let thumb: (Float, Float) = (0.8, 0.1)
+        let outcome = run(&state, frames: [
+            touches([(0.3, 0.5), (0.3, 0.55), (0.3, 0.6), thumb]),
+            touches([(0.35, 0.5), (0.35, 0.55), (0.35, 0.6), thumb]),
+            touches([(0.6, 0.5), (0.6, 0.55), (0.6, 0.6), thumb])
+        ])
+        #expect(outcome.firedDirection == .right)
+        #expect(state.suppressedUntilRelease == false)
+    }
+
+    @Test("A thumb landing after tracking starts does not suppress the swipe")
+    func thumbLandingMidGestureTolerated() {
+        var state = SwipeState()
+        // The failure pattern from the field: tracking starts with three fingers,
+        // a thumb lands a frame later and stays down at rest while the swipe
+        // completes.
+        let thumb: (Float, Float) = (0.8, 0.1)
+        let outcome = run(&state, frames: [
+            touches([(0.3, 0.5), (0.3, 0.55), (0.3, 0.6)]),
+            touches([(0.32, 0.5), (0.32, 0.55), (0.32, 0.6), thumb]),
+            touches([(0.35, 0.5), (0.35, 0.55), (0.35, 0.6), thumb]),
+            touches([(0.6, 0.5), (0.6, 0.55), (0.6, 0.6), thumb])
+        ])
+        #expect(outcome.firedDirection == .right)
+        #expect(state.suppressedUntilRelease == false)
+    }
+
+    @Test("Four fingers sweeping together never fire a three-finger swipe")
+    func fourMovingFingersNeverFire() {
         var state = SwipeState()
         // Four fingers all sweep right together; the three-finger tracker must not
-        // fire during the frames before suppression arms.
+        // fire on any frame, and suppression arms once the movement is clear.
         let outcomes: [FrameOutcome] = [
             touches([(0.2, 0.5), (0.3, 0.5), (0.4, 0.5), (0.5, 0.5)]),
             touches([(0.4, 0.5), (0.5, 0.5), (0.6, 0.5), (0.7, 0.5)]),
             touches([(0.6, 0.5), (0.7, 0.5), (0.8, 0.5), (0.9, 0.5)])
         ].map { updateSwipeState(state: &state, touches: $0) }
-        #expect(outcomes.allSatisfy { $0.firedDirection == nil && !$0.isThreeFingerFrame })
+        #expect(outcomes.allSatisfy { $0.firedDirection == nil })
         #expect(state.suppressedUntilRelease)
     }
 }
@@ -344,14 +380,13 @@ struct FrameDiagnosticsTests {
     @Test("Suppression arm and clear are reported on transitions only")
     func suppressionTransitions() {
         var state = SwipeState()
-        let four = touches([(0.2, 0.5), (0.3, 0.5), (0.4, 0.5), (0.5, 0.5)])
-        for _ in 0..<(kFourFingerDebounceFrames - 1) {
-            let outcome = updateSwipeState(state: &state, touches: four)
-            #expect(!outcome.suppressionArmed)
-        }
-        let arming = updateSwipeState(state: &state, touches: four)
+        let fourAtRest = touches([(0.2, 0.5), (0.3, 0.5), (0.4, 0.5), (0.5, 0.5)])
+        let fourMoved = touches([(0.4, 0.5), (0.5, 0.5), (0.6, 0.5), (0.7, 0.5)])
+        let atRest = updateSwipeState(state: &state, touches: fourAtRest)
+        #expect(!atRest.suppressionArmed)
+        let arming = updateSwipeState(state: &state, touches: fourMoved)
         #expect(arming.suppressionArmed)
-        let afterArming = updateSwipeState(state: &state, touches: four)
+        let afterArming = updateSwipeState(state: &state, touches: fourMoved)
         #expect(!afterArming.suppressionArmed)
 
         let released = updateSwipeState(state: &state, touches: [])
@@ -360,19 +395,24 @@ struct FrameDiagnosticsTests {
         #expect(!stillReleased.suppressionCleared)
     }
 
-    @Test("Sustained four-finger frames during tracking report the abandoned gesture")
+    @Test("A four-finger gesture during tracking reports the abandoned gesture")
     func fourFingersAbandonsTracking() {
         var state = SwipeState()
-        _ = updateSwipeState(state: &state, touches: touches([(0.3, 0.5), (0.3, 0.5), (0.3, 0.5)]))
-        _ = updateSwipeState(state: &state, touches: touches([(0.35, 0.5), (0.35, 0.5), (0.35, 0.5)]))
-        let four = touches([(0.35, 0.5), (0.35, 0.5), (0.35, 0.5), (0.5, 0.5)])
-        var outcome = FrameOutcome()
-        for _ in 0..<kFourFingerDebounceFrames {
-            outcome = updateSwipeState(state: &state, touches: four)
-        }
+        _ = updateSwipeState(state: &state, touches: touches([(0.3, 0.5), (0.3, 0.55), (0.3, 0.6)]))
+        // A fourth contact lands, then all four move together — a four-finger
+        // gesture, so the tracked (unfired) gesture is abandoned with the travel
+        // of all four contacts reported.
+        _ = updateSwipeState(
+            state: &state,
+            touches: touches([(0.32, 0.5), (0.32, 0.55), (0.32, 0.6), (0.5, 0.1)])
+        )
+        let outcome = updateSwipeState(
+            state: &state,
+            touches: touches([(0.4, 0.5), (0.4, 0.55), (0.4, 0.6), (0.55, 0.1)])
+        )
         #expect(outcome.suppressionArmed)
         #expect(outcome.abandonedContactCount == 4)
-        #expect(outcome.abandonedDeltas?.count == 3)
+        #expect(outcome.abandonedDeltas?.count == 4)
     }
 }
 
