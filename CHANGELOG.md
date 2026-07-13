@@ -2,6 +2,10 @@
 
 All notable changes to Swyper will be documented in this file.
 
+## [0.7.3] - 2026-07-13
+
+- Fix three-finger swipes still failing with a resting thumb whose contact size reads like a fingertip: four-finger suppression now arms only when four or more contacts actually move together (a real system four-finger gesture), so stationary extra contacts no longer block swipes
+
 ## [0.7.2] - 2026-07-08
 
 - Fix three-finger swipes intermittently failing when a resting thumb or palm sits near the palm-size threshold: palm classification is now sticky per contact, and four-finger suppression requires the contact count to persist for a few frames instead of arming on a single frame
