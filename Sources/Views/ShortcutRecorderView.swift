@@ -27,6 +27,7 @@ final class ShortcutRecorderNSView: NSView {
     private var isRecording = false
     private var pendingModifiers: CGEventFlags = []
     private var trackingArea: NSTrackingArea?
+    private var eventMonitor: Any?
 
     override var acceptsFirstResponder: Bool { true }
 
@@ -115,32 +116,33 @@ final class ShortcutRecorderNSView: NSView {
         }
     }
 
-    override func keyDown(with event: NSEvent) {
-        guard isRecording else {
-            super.keyDown(with: event)
-            return
+    // Key events arrive through a local event monitor rather than keyDown:
+    // shortcuts with Command (e.g. ⌘W) are routed to the window's key-equivalent
+    // handling before they reach the responder chain, so waiting for keyDown
+    // lets them trigger their normal action (closing the window) mid-recording.
+    // The monitor sees events first and returning nil swallows them.
+    private func handleRecordingEvent(_ event: NSEvent) -> NSEvent? {
+        switch event.type {
+        case .flagsChanged:
+            let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            pendingModifiers = cgEventFlags(from: modifiers)
+            needsDisplay = true
+            return nil
+        case .keyDown:
+            let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            // Escape with no modifiers cancels recording instead of being captured.
+            if event.keyCode == UInt16(kVK_Escape) && modifiers.isEmpty {
+                stopRecording()
+                return nil
+            }
+            let cgFlags = cgEventFlags(from: modifiers)
+            let newShortcut = KeyShortcut(keyCode: event.keyCode, modifierFlags: cgFlags.rawValue)
+            onShortcutChanged?(newShortcut)
+            stopRecording()
+            return nil
+        default:
+            return event
         }
-
-        let keyCode = event.keyCode
-
-        // Capture the shortcut
-        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        let cgFlags = cgEventFlags(from: modifiers)
-
-        let newShortcut = KeyShortcut(keyCode: keyCode, modifierFlags: cgFlags.rawValue)
-        onShortcutChanged?(newShortcut)
-        stopRecording()
-    }
-
-    override func flagsChanged(with event: NSEvent) {
-        guard isRecording else {
-            super.flagsChanged(with: event)
-            return
-        }
-
-        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        pendingModifiers = cgEventFlags(from: modifiers)
-        needsDisplay = true
     }
 
     override func resignFirstResponder() -> Bool {
@@ -154,12 +156,20 @@ final class ShortcutRecorderNSView: NSView {
         isRecording = true
         pendingModifiers = []
         window?.makeFirstResponder(self)
+        eventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { [weak self] event in
+            guard let self, self.isRecording else { return event }
+            return self.handleRecordingEvent(event)
+        }
         needsDisplay = true
     }
 
     private func stopRecording() {
         isRecording = false
         pendingModifiers = []
+        if let monitor = eventMonitor {
+            NSEvent.removeMonitor(monitor)
+            eventMonitor = nil
+        }
         window?.makeFirstResponder(nil)
         needsDisplay = true
     }
